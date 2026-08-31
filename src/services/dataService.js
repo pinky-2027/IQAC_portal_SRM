@@ -155,7 +155,7 @@ export const getLegacyKpiClientData = (institution = 'FLABS', year = '2024-2025'
 /**
  * Calculate total institution overview (Sum across all departments in an institution)
  */
-export const getInstitutionalOverviewData = (institution = 'ET', year = '2024-2025') => {
+export const getInstitutionalOverviewData = (institution = 'ET', year = '2025-2026') => {
   const instUpper = (institution || '').toUpperCase();
 
   if (instUpper === 'BARCH' || instUpper === 'SEAD' || instUpper === 'ARCHITECTURE') {
@@ -254,11 +254,46 @@ export const getInstitutionalOverviewData = (institution = 'ET', year = '2024-20
       yearBreakdowns[yr] = breakdown;
     });
 
+    // Generate multi-year department matrix for Level 3 Details Page
+    const departmentMatrix = deptKeys.map(dk => {
+      const dParams = Array.isArray(deptDataObject[dk])
+        ? deptDataObject[dk]
+        : deptDataObject[dk]?.parameters || [];
+
+      const matchP = dParams.find(p => 
+        p.indicator === baseParam.indicator || 
+        (p.indicator.toLowerCase().includes('intake') && baseParam.indicator.toLowerCase().includes('intake'))
+      );
+
+      const yearsObj = {};
+      availableYears.forEach(yr => {
+        if (matchP) {
+          const val = matchP.values ? matchP.values[yr] : matchP[yr];
+          let numVal = 0;
+          if (typeof val === 'number') {
+            numVal = val;
+          } else if (typeof val === 'string') {
+            const parsed = parseFloat(val);
+            numVal = isNaN(parsed) ? 0 : parsed;
+          }
+          yearsObj[yr] = numVal;
+        } else {
+          yearsObj[yr] = 0;
+        }
+      });
+
+      return {
+        department: dk,
+        years: yearsObj
+      };
+    });
+
     return {
       indicator: indicatorName,
       originalIndicator: baseParam.indicator,
       values: yearSums,
-      breakdown: yearBreakdowns
+      breakdown: yearBreakdowns,
+      departmentMatrix: departmentMatrix
     };
   });
 
