@@ -73,11 +73,21 @@ export const getYearWiseKPI = async (kpiName, deptCode = 'BCA') => {
   });
 };
 
+const renameIntakeIndicator = (records) => {
+  if (!Array.isArray(records)) return [];
+  return records.map(r => {
+    if (r.indicator && (r.indicator.toLowerCase() === 'total intake' || r.indicator.toLowerCase() === 'intake')) {
+      return { ...r, indicator: 'Total Students Admitted', originalIndicator: r.indicator };
+    }
+    return r;
+  });
+};
+
 /**
  * Unified client KPI loader fallback
  */
 export const getLegacyKpiClientData = (institution = 'FLABS', year = '2024-2025', department = null) => {
-  const instUpper = (institution || '').toUpperCase().strip ? (institution || '').toUpperCase().strip() : (institution || '').toUpperCase();
+  const instUpper = (institution || '').toUpperCase();
 
   if (instUpper === 'BARCH' || instUpper === 'SEAD' || instUpper === 'ARCHITECTURE') {
     return {
@@ -92,7 +102,7 @@ export const getLegacyKpiClientData = (institution = 'FLABS', year = '2024-2025'
 
   if (instUpper === 'MANAGEMENT' || instUpper === 'FOM' || instUpper === 'MGMT') {
     const deptKey = (department || 'MBA').toUpperCase();
-    const records = MGMT_DEPARTMENT_DATA[deptKey] || [];
+    const records = renameIntakeIndicator(MGMT_DEPARTMENT_DATA[deptKey] || []);
     return {
       hasData: records.length > 0,
       institution: 'Management',
@@ -105,7 +115,7 @@ export const getLegacyKpiClientData = (institution = 'FLABS', year = '2024-2025'
 
   if (instUpper === 'ET' || instUpper === 'E&T' || instUpper === 'FET' || instUpper === 'ENGINEERING') {
     const deptKey = (department || 'CSE').toUpperCase();
-    const records = ET_DEPARTMENT_DATA[deptKey] || [];
+    const records = renameIntakeIndicator(ET_DEPARTMENT_DATA[deptKey] || []);
     return {
       hasData: records.length > 0,
       institution: 'E&T',
@@ -122,13 +132,14 @@ export const getLegacyKpiClientData = (institution = 'FLABS', year = '2024-2025'
   ) || 'BCA';
   const deptData = FLABS_DEPARTMENT_DATA[deptKey];
   if (deptData) {
+    const records = renameIntakeIndicator(deptData.parameters);
     return {
       hasData: true,
       institution: 'FLABS',
       department: deptData.name || deptKey,
       available_departments: Object.keys(FLABS_DEPARTMENT_DATA),
       available_years: ['2021-2022', '2022-2023', '2023-2024', '2024-2025', '2025-2026'],
-      records: deptData.parameters
+      records: records
     };
   }
 
@@ -138,5 +149,125 @@ export const getLegacyKpiClientData = (institution = 'FLABS', year = '2024-2025'
     department: department,
     available_departments: Object.keys(FLABS_DEPARTMENT_DATA),
     records: []
+  };
+};
+
+/**
+ * Calculate total institution overview (Sum across all departments in an institution)
+ */
+export const getInstitutionalOverviewData = (institution = 'ET', year = '2024-2025') => {
+  const instUpper = (institution || '').toUpperCase();
+
+  if (instUpper === 'BARCH' || instUpper === 'SEAD' || instUpper === 'ARCHITECTURE') {
+    return {
+      hasData: false,
+      isPending: true,
+      institution: 'B.Arch',
+      department: 'Institutional Overview',
+      message: 'Data is yet to be received for B.Arch Institution.'
+    };
+  }
+
+  let deptDataObject = null;
+  let instName = 'E&T';
+
+  if (instUpper === 'MANAGEMENT' || instUpper === 'FOM' || instUpper === 'MGMT') {
+    deptDataObject = MGMT_DEPARTMENT_DATA;
+    instName = 'Management';
+  } else if (instUpper === 'ET' || instUpper === 'E&T' || instUpper === 'FET' || instUpper === 'ENGINEERING') {
+    deptDataObject = ET_DEPARTMENT_DATA;
+    instName = 'E&T';
+  } else {
+    // FLABS
+    instName = 'FLABS';
+    const flabsObj = {};
+    Object.keys(FLABS_DEPARTMENT_DATA).forEach(k => {
+      flabsObj[k] = FLABS_DEPARTMENT_DATA[k].parameters;
+    });
+    deptDataObject = flabsObj;
+  }
+
+  if (!deptDataObject) {
+    return { hasData: false, institution: instName, department: 'Institutional Overview', records: [] };
+  }
+
+  const deptKeys = Object.keys(deptDataObject);
+  if (deptKeys.length === 0) {
+    return { hasData: false, institution: instName, department: 'Institutional Overview', records: [] };
+  }
+
+  const firstDeptParams = Array.isArray(deptDataObject[deptKeys[0]])
+    ? deptDataObject[deptKeys[0]]
+    : deptDataObject[deptKeys[0]]?.parameters || [];
+
+  const availableYears = ['2021-2022', '2022-2023', '2023-2024', '2024-2025', '2025-2026'];
+
+  const overviewRecords = firstDeptParams.map(baseParam => {
+    if (baseParam.section) {
+      return { section: baseParam.section };
+    }
+
+    let indicatorName = baseParam.indicator;
+    if (indicatorName.toLowerCase() === 'total intake' || indicatorName.toLowerCase() === 'intake') {
+      indicatorName = 'Total Students Admitted';
+    }
+
+    const yearSums = {};
+    const yearBreakdowns = {};
+
+    availableYears.forEach(yr => {
+      let sum = 0;
+      let count = 0;
+      const breakdown = [];
+
+      deptKeys.forEach(dk => {
+        const dParams = Array.isArray(deptDataObject[dk])
+          ? deptDataObject[dk]
+          : deptDataObject[dk]?.parameters || [];
+
+        const matchP = dParams.find(p => 
+          p.indicator === baseParam.indicator || 
+          (p.indicator.toLowerCase().includes('intake') && baseParam.indicator.toLowerCase().includes('intake'))
+        );
+
+        if (matchP) {
+          const val = matchP.values ? matchP.values[yr] : matchP[yr];
+          let numVal = 0;
+          if (typeof val === 'number') {
+            numVal = val;
+          } else if (typeof val === 'string') {
+            const parsed = parseFloat(val);
+            numVal = isNaN(parsed) ? 0 : parsed;
+          }
+          sum += numVal;
+          count++;
+          breakdown.push({ department: dk, value: numVal });
+        }
+      });
+
+      if (baseParam.indicator.toLowerCase().includes('percentage')) {
+        const avg = count > 0 ? Number((sum / count).toFixed(1)) : 0;
+        yearSums[yr] = avg;
+      } else {
+        yearSums[yr] = Math.round(sum);
+      }
+      yearBreakdowns[yr] = breakdown;
+    });
+
+    return {
+      indicator: indicatorName,
+      originalIndicator: baseParam.indicator,
+      values: yearSums,
+      breakdown: yearBreakdowns
+    };
+  });
+
+  return {
+    hasData: true,
+    isOverview: true,
+    institution: instName,
+    department: 'All Departments (Institutional Overview)',
+    available_departments: deptKeys,
+    records: overviewRecords
   };
 };

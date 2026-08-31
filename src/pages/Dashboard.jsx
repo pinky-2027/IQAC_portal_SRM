@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Building2, FileText, Check, Award, GraduationCap, Users, Microscope, FileX, BarChart2, ArrowRight, ChevronRight, Layers, Sparkles, Zap, BookOpen, TrendingUp, Table, Calendar } from 'lucide-react';
-import { 
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip as RechartsTooltip, ResponsiveContainer, Legend 
+import {
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/apiService';
@@ -111,7 +111,7 @@ const Dashboard = () => {
     setSelectedInstCode(instCode);
     setSelectedDept(defaultDept);
     setHasChosenScope(true);
-    
+
     setTimeout(() => {
       detailsRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -133,8 +133,8 @@ const Dashboard = () => {
   };
 
   const etDepartments = [
-    'CSE', 'IT', 'LCS', 'MATHS', 'PHYSICS', 'CHEMISTRY', 'EEE', 
-    'ECE-ECE DS', 'BIOTECH', 'BIOMEDICAL', 'CIVIL', 'MECH', 
+    'CSE', 'IT', 'LCS', 'MATHS', 'PHYSICS', 'CHEMISTRY', 'EEE',
+    'ECE-ECE DS', 'BIOTECH', 'BIOMEDICAL', 'CIVIL', 'MECH',
     'AIMLAI', 'GTDS', 'CS', 'BDACC', 'IOTCSBS'
   ];
   const mgmtDepartments = ['MBA', 'BBA'];
@@ -188,7 +188,7 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6 animate-fade-in font-sans pb-10">
-      
+
       {/* TOP LANDING HEADER MATCHING SCREENSHOT */}
       <div className="bg-[#121E31] rounded-2xl p-6 sm:p-8 shadow-md text-white relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -207,13 +207,12 @@ const Dashboard = () => {
       {/* 4 INSTITUTION LANDING CARDS (ONLY SHOWN FOR CHAIRMAN LOGINS) */}
       {isChairman && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          
+
           {/* CARD 1: E&T */}
-          <div 
+          <div
             onClick={() => handleSelectScope('ET', 'CSE')}
-            className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${
-              selectedInstCode === 'ET' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
-            }`}
+            className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${selectedInstCode === 'ET' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
+              }`}
           >
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -233,11 +232,10 @@ const Dashboard = () => {
           </div>
 
           {/* CARD 2: FLABS */}
-          <div 
+          <div
             onClick={() => handleSelectScope('FLABS', 'BCA')}
-            className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${
-              selectedInstCode === 'FLABS' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
-            }`}
+            className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${selectedInstCode === 'FLABS' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
+              }`}
           >
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -257,11 +255,10 @@ const Dashboard = () => {
           </div>
 
           {/* CARD 3: Management */}
-          <div 
+          <div
             onClick={() => handleSelectScope('MANAGEMENT', 'MBA')}
-            className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${
-              selectedInstCode === 'MANAGEMENT' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
-            }`}
+            className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${selectedInstCode === 'MANAGEMENT' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
+              }`}
           >
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -281,11 +278,10 @@ const Dashboard = () => {
           </div>
 
           {/* CARD 4: B.Arch */}
-          <div 
+          <div
             onClick={() => handleSelectScope('BARCH', 'B.Arch')}
-            className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${
-              selectedInstCode === 'BARCH' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
-            }`}
+            className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${selectedInstCode === 'BARCH' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
+              }`}
           >
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -309,11 +305,11 @@ const Dashboard = () => {
 
       {/* DYNAMIC DASHBOARD MAIN VIEW (RESTRICTED FOR DEAN & IQAC COORDINATORS) */}
       <div ref={detailsRef} className="space-y-6 animate-fade-in-up pt-2">
-        
+
         {/* SELECTION BAR (MATCHING FILTER BY YEAR IN SCREENSHOT) */}
         <div className="bg-white rounded-2xl shadow-2xs border border-gray-200/80 p-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            
+
             <div>
               <span className="text-[10px] font-bold text-brand-blue uppercase tracking-wider block">Institutional Scope</span>
               <h3 className="text-base font-bold text-brand-navy flex items-center">
@@ -391,7 +387,7 @@ const Dashboard = () => {
           </div>
         ) : kpiLegacyData && kpiLegacyData.hasData ? (
           <div className="space-y-6">
-            
+
             {/* YEAR PARAMETER CARDS (MATCHING EXACT SCREENSHOT CARD STYLE) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {kpiLegacyData.records.map((rec, idx) => {
@@ -410,8 +406,8 @@ const Dashboard = () => {
                 const topAccent = getTopBorderAccent(idx);
 
                 return (
-                  <div 
-                    key={idx} 
+                  <div
+                    key={idx}
                     className={`bg-white rounded-2xl p-4 sm:p-5 shadow-2xs border border-gray-200/90 hover:shadow-md transition-all flex flex-col justify-between ${topAccent}`}
                   >
                     <div>
