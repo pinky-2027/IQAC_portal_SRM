@@ -186,7 +186,7 @@ const Login = () => {
             Data Analytics Portal
           </h2>
           <p className="text-blue-100 text-sm mt-3 max-w-lg font-light leading-relaxed">
-            Executive Analytics &amp; Quality Monitoring for Chairman, Deans, IQAC Coordinators, HODs, and Faculty across FLABS, E&amp;T, B.Arch, and Management.
+            Executive Analytics &amp; Quality Monitoring for Chairman, Deans, IQAC Coordinators, HODs, and Faculty across E&amp;T, FLABS, Management, and B.Arch.
           </p>
         </div>
 
@@ -255,10 +255,10 @@ const Login = () => {
                   className="w-full bg-brand-bg border border-gray-200 rounded-xl py-2 px-3 text-xs font-bold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue cursor-pointer"
                 >
                   <option value="">— Choose Group —</option>
-                  <option value="FLABS">FLABS (Science &amp; Humanities)</option>
                   <option value="E&T">E&amp;T (Engineering &amp; Technology)</option>
-                  <option value="B.Arch">B.Arch (Architecture)</option>
+                  <option value="FLABS">FLABS (Science &amp; Humanities)</option>
                   <option value="Management">Management (FOM)</option>
+                  <option value="B.Arch">B.Arch (Architecture)</option>
                 </select>
               </div>
             )}
