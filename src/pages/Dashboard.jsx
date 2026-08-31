@@ -56,13 +56,15 @@ const Dashboard = () => {
       }
     } else if (location.state?.institution) {
       setSelectedInstCode(location.state.institution);
-      if (location.state.department) setSelectedDept(location.state.department);
+      if (location.state.department) {
+        setSelectedDept(location.state.department);
+      }
     }
   }, [assignedInst, location.state]);
 
   useEffect(() => {
     loadHistoricalKpiData();
-  }, [selectedInstCode, selectedDept, selectedYear, isChairman, viewLevel]);
+  }, [selectedInstCode, selectedDept, selectedYear, isChairman, viewLevel, location.state]);
 
   const loadHistoricalKpiData = async () => {
     setLoading(true);
@@ -80,7 +82,18 @@ const Dashboard = () => {
       }
 
       if (isChairman) {
-        // Chairman Level 2 (Overview) or Level 3 (Details) always loads institutional overview dataset
+        // If Chairman specifically selected a single department from sidebar
+        if (location.state?.department && viewLevel !== 'overview' && !selectedParamRecord) {
+          const deptData = getLegacyKpiClientData(selectedInstCode, selectedYear, location.state.department);
+          setKpiLegacyData(deptData);
+          if (deptData.records && deptData.records[0] && deptData.records[0].indicator) {
+            setSelectedTrendIndicator(deptData.records[0].indicator);
+          }
+          setLoading(false);
+          return;
+        }
+
+        // Default Chairman Level 2 (Overview) or Level 3 (Details)
         const overview = getInstitutionalOverviewData(selectedInstCode, selectedYear);
         setKpiLegacyData(overview);
         if (overview.records && overview.records[0] && overview.records[0].indicator) {
@@ -128,6 +141,9 @@ const Dashboard = () => {
     setViewLevel('overview');
     setSelectedParamRecord(null);
     
+    // Clear location state department to ensure overview loads cleanly
+    navigate('/admin/dashboard', { state: { institution: instCode } });
+
     setTimeout(() => {
       detailsRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -146,6 +162,7 @@ const Dashboard = () => {
   const handleBackToOverview = () => {
     setViewLevel('overview');
     setSelectedParamRecord(null);
+    navigate('/admin/dashboard', { state: { institution: selectedInstCode } });
   };
 
   const formatVal = (indicator, rawVal) => {
@@ -195,7 +212,7 @@ const Dashboard = () => {
   };
 
   const getInstitutionDisplayName = (code) => {
-    if (code === 'ET') return 'E&T (Engineering & Technology)';
+    if (code === 'ET' || code === 'E&T') return 'E&T (Engineering & Technology)';
     if (code === 'MANAGEMENT') return 'Management (MBA & BBA)';
     if (code === 'BARCH' || code === 'SEAD') return 'B.Arch (Architecture)';
     return 'FLABS (Faculty of Science & Humanities)';
@@ -217,8 +234,8 @@ const Dashboard = () => {
             {isChairman 
               ? (viewLevel === 'details' 
                   ? `Department-wise parameter breakdown for ${selectedParamRecord?.indicator || 'selected metric'} (${selectedYear}).`
-                  : `Aggregated institutional overview across all departments in ${selectedInstCode}.`)
-              : `View performance metrics across ${selectedInstCode} departments.`
+                  : `Aggregated institutional overview across all departments in ${getInstitutionDisplayName(selectedInstCode)}.`)
+              : `View performance metrics across ${getInstitutionDisplayName(selectedInstCode)} departments.`
             }
           </p>
         </div>
@@ -232,7 +249,7 @@ const Dashboard = () => {
           <div 
             onClick={() => handleSelectInstitution('ET')}
             className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${
-              selectedInstCode === 'ET' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
+              selectedInstCode === 'ET' || selectedInstCode === 'E&T' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
             }`}
           >
             <div>
@@ -337,7 +354,7 @@ const Dashboard = () => {
                   className="px-3 py-1.5 bg-brand-navy hover:bg-brand-blue text-white rounded-xl text-xs font-bold transition-all flex items-center shadow-2xs cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
-                  Back to {selectedInstCode} Overview
+                  Back to {selectedInstCode === 'ET' ? 'E&T' : selectedInstCode} Overview
                 </button>
               )}
               <div>
@@ -439,7 +456,7 @@ const Dashboard = () => {
                       Institutional Overview Multi-Year Trend Graph
                     </h3>
                     <p className="text-xs text-brand-muted mt-0.5">
-                      Aggregated institutional longitudinal trend (2021-2022 to 2025-2026) for {selectedInstCode}
+                      Aggregated institutional longitudinal trend (2021-2022 to 2025-2026) for {getInstitutionDisplayName(selectedInstCode)}
                     </p>
                   </div>
                 </div>
@@ -505,10 +522,10 @@ const Dashboard = () => {
                     <span className="text-xs font-bold text-gray-500">Academic Year: {selectedYear}</span>
                   </div>
                   <h2 className="text-xl font-bold text-brand-navy font-serif">
-                    {selectedParamRecord?.indicator} — {selectedInstCode} Details
+                    {selectedParamRecord?.indicator} — {getInstitutionDisplayName(selectedInstCode)} Details
                   </h2>
                   <p className="text-xs text-gray-500 font-medium mt-0.5">
-                    Viewing department-level contribution data across all departments in {selectedInstCode} for {selectedYear}.
+                    Viewing department-level contribution data across all departments in {getInstitutionDisplayName(selectedInstCode)} for {selectedYear}.
                   </p>
                 </div>
 
@@ -517,7 +534,7 @@ const Dashboard = () => {
                   className="px-4 py-2 bg-brand-navy hover:bg-brand-blue text-white rounded-xl text-xs font-bold transition-all flex items-center cursor-pointer shadow-2xs flex-shrink-0"
                 >
                   <ArrowLeft className="w-4 h-4 mr-1.5" />
-                  Back to {selectedInstCode} Overview
+                  Back to {selectedInstCode === 'ET' ? 'E&T' : selectedInstCode} Overview
                 </button>
               </div>
 
@@ -637,7 +654,7 @@ const Dashboard = () => {
           <div className="bg-white rounded-2xl shadow-2xs border border-gray-200/80 p-10 text-center space-y-2">
             <FileX className="w-10 h-10 text-amber-500 mx-auto mb-1" />
             <h4 className="text-base font-bold text-brand-navy">
-              Data is not available for {selectedInstCode}.
+              Data is not available for {getInstitutionDisplayName(selectedInstCode)}.
             </h4>
           </div>
         )}

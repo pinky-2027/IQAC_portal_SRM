@@ -42,36 +42,40 @@ const Layout = () => {
   };
 
   const etDepts = [
-    { code: 'CSE', label: 'CSE' },
-    { code: 'IT', label: 'IT' },
-    { code: 'LCS', label: 'LCS' },
-    { code: 'MATHS', label: 'Maths' },
+    { code: 'CSE', label: 'CSE (Computer Science)' },
+    { code: 'IT', label: 'IT (Information Tech)' },
+    { code: 'LCS', label: 'LCS (Language & Comm)' },
+    { code: 'MATHS', label: 'Maths (Mathematics)' },
     { code: 'PHYSICS', label: 'Physics' },
     { code: 'CHEMISTRY', label: 'Chemistry' },
-    { code: 'EEE', label: 'EEE' },
-    { code: 'ECE-ECE DS', label: 'ECE' },
-    { code: 'BIOTECH', label: 'Biotech' },
-    { code: 'BIOMEDICAL', label: 'Biomedical' },
-    { code: 'CIVIL', label: 'Civil' },
-    { code: 'MECH', label: 'Mechanical' },
-    { code: 'AIMLAI', label: 'AIML' }
+    { code: 'EEE', label: 'EEE (Electrical Eng)' },
+    { code: 'ECE-ECE DS', label: 'ECE (Electronics Eng)' },
+    { code: 'BIOTECH', label: 'Biotech (Biotechnology)' },
+    { code: 'BIOMEDICAL', label: 'Biomedical Eng' },
+    { code: 'CIVIL', label: 'Civil Eng' },
+    { code: 'MECH', label: 'Mechanical Eng' },
+    { code: 'AIMLAI', label: 'AIML (AI & ML)' },
+    { code: 'GTDS', label: 'GTDS' },
+    { code: 'CS', label: 'CS (Computer Science)' },
+    { code: 'BDACC', label: 'BDACC' },
+    { code: 'IOTCSBS', label: 'IOT & CSBS' }
   ];
 
   const flabsDepts = [
-    { code: 'BCA', label: 'BCA' },
-    { code: 'MCA', label: 'MCA' },
-    { code: 'CS', label: 'CS' },
+    { code: 'BCA', label: 'BCA (Computer Applications)' },
+    { code: 'MCA', label: 'MCA (Computer Applications)' },
+    { code: 'CS', label: 'Computer Science (CS)' },
     { code: 'Cyber', label: 'Cyber Security' },
     { code: 'AI&ML', label: 'AI & ML' },
-    { code: 'LCS', label: 'LCS' },
+    { code: 'LCS', label: 'LCS (Language & Comm)' },
     { code: 'com-S2', label: 'Commerce Shift 2' },
     { code: 'commer-S1', label: 'Commerce Shift 1' },
     { code: 'biotech', label: 'Biotechnology' },
     { code: 'Maths', label: 'Mathematics' },
     { code: 'A&F', label: 'Commerce (A&F)' },
     { code: 'viscom', label: 'Visual Comm' },
-    { code: 'JMC', label: 'JMC' },
-    { code: 'FD', label: 'Fashion Des' }
+    { code: 'JMC', label: 'Journalism & Mass Comm' },
+    { code: 'FD', label: 'Fashion Designing' }
   ];
 
   const mgmtDepts = [
@@ -202,8 +206,8 @@ const Layout = () => {
 
               {/* HELPER LEGEND */}
               <div className="px-3 py-1.5 text-[9px] text-blue-200/60 space-y-0.5 font-medium">
-                <p>&bull; Click name &rarr; Select institution overview</p>
-                {!isChairman && <p>&bull; Click arrow &#9654;/&#9660; &rarr; Department list</p>}
+                <p>&bull; Click header &rarr; Institution overview</p>
+                <p>&bull; Click department &rarr; Dept details</p>
               </div>
 
               {isInstTreeOpen && (
@@ -214,16 +218,17 @@ const Layout = () => {
                     <div>
                       <button
                         onClick={() => handleInstHeaderClick('ET', 'CSE')}
-                        className="w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                        className={`w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer ${openInstKey === 'ET' ? 'bg-white/10 font-bold text-white' : ''}`}
                       >
                         <div className="flex items-center space-x-2">
                           {openInstKey === 'ET' ? <ChevronDown className="w-3 h-3 text-blue-300" /> : <ChevronRight className="w-3 h-3 text-blue-300" />}
                           <Layers className="w-3.5 h-3.5 text-amber-300" />
                           <span className="font-bold text-white">E&amp;T Overview</span>
                         </div>
+                        <span className="text-[9px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold">17</span>
                       </button>
 
-                      {!isChairman && openInstKey === 'ET' && (
+                      {openInstKey === 'ET' && (
                         <div className="pl-6 py-1 space-y-1 border-l border-white/10 ml-3">
                           {etDepts.map(d => (
                             <button
@@ -244,16 +249,17 @@ const Layout = () => {
                     <div>
                       <button
                         onClick={() => handleInstHeaderClick('FLABS', 'BCA')}
-                        className="w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                        className={`w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer ${openInstKey === 'FLABS' ? 'bg-white/10 font-bold text-white' : ''}`}
                       >
                         <div className="flex items-center space-x-2">
                           {openInstKey === 'FLABS' ? <ChevronDown className="w-3 h-3 text-blue-300" /> : <ChevronRight className="w-3 h-3 text-blue-300" />}
                           <Layers className="w-3.5 h-3.5 text-purple-300" />
                           <span className="font-bold text-white">FLABS Overview</span>
                         </div>
+                        <span className="text-[9px] bg-emerald-400/20 text-emerald-300 px-1.5 py-0.5 rounded font-mono font-bold">14</span>
                       </button>
 
-                      {!isChairman && openInstKey === 'FLABS' && (
+                      {openInstKey === 'FLABS' && (
                         <div className="pl-6 py-1 space-y-1 border-l border-white/10 ml-3">
                           {flabsDepts.map(d => (
                             <button
@@ -274,16 +280,17 @@ const Layout = () => {
                     <div>
                       <button
                         onClick={() => handleInstHeaderClick('MANAGEMENT', 'MBA')}
-                        className="w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                        className={`w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer ${openInstKey === 'MANAGEMENT' ? 'bg-white/10 font-bold text-white' : ''}`}
                       >
                         <div className="flex items-center space-x-2">
                           {openInstKey === 'MANAGEMENT' ? <ChevronDown className="w-3 h-3 text-blue-300" /> : <ChevronRight className="w-3 h-3 text-blue-300" />}
                           <Layers className="w-3.5 h-3.5 text-emerald-300" />
                           <span className="font-bold text-white">Management Overview</span>
                         </div>
+                        <span className="text-[9px] bg-purple-400/20 text-purple-300 px-1.5 py-0.5 rounded font-mono font-bold">2</span>
                       </button>
 
-                      {!isChairman && openInstKey === 'MANAGEMENT' && (
+                      {openInstKey === 'MANAGEMENT' && (
                         <div className="pl-6 py-1 space-y-1 border-l border-white/10 ml-3">
                           {mgmtDepts.map(d => (
                             <button
@@ -304,10 +311,13 @@ const Layout = () => {
                     <div>
                       <button
                         onClick={() => handleInstHeaderClick('BARCH', 'B.Arch')}
-                        className="w-full flex items-center space-x-2 py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                        className={`w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer ${openInstKey === 'BARCH' ? 'bg-white/10 font-bold text-white' : ''}`}
                       >
-                        <Layers className="w-3.5 h-3.5 text-slate-300" />
-                        <span className="font-bold text-white">B.Arch</span>
+                        <div className="flex items-center space-x-2">
+                          <Layers className="w-3.5 h-3.5 text-slate-300" />
+                          <span className="font-bold text-white">B.Arch</span>
+                        </div>
+                        <span className="text-[9px] bg-slate-400/20 text-slate-300 px-1.5 py-0.5 rounded font-mono font-bold">Pending</span>
                       </button>
                     </div>
                   )}
