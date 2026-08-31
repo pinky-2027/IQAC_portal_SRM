@@ -4,8 +4,35 @@ import { apiService } from '../services/apiService';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
+  const setUserSession = (userObj, tokenStr) => {
+    const activeToken = tokenStr || 'demo_token_' + userObj.id;
+    localStorage.setItem('iqac_token', activeToken);
+    localStorage.setItem('iqac_user', JSON.stringify(userObj));
+    setToken(activeToken);
+    setUser(userObj);
+  };
+
   const getInitialUser = () => {
     try {
+      // Check for URL parameter ?role=CHAIRMAN for one-click entry
+      if (typeof window !== 'undefined' && window.location.search) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const roleParam = urlParams.get('role');
+        if (roleParam && roleParam.toUpperCase() === 'CHAIRMAN') {
+          const autoChairman = {
+            id: 'CHAIRMAN_AUTO',
+            username: 'chairman',
+            full_name: 'Chairman',
+            role: 'CHAIRMAN',
+            department_name: 'SRM IST',
+            group: 'ALL'
+          };
+          localStorage.setItem('iqac_token', 'auto_chairman_token');
+          localStorage.setItem('iqac_user', JSON.stringify(autoChairman));
+          return autoChairman;
+        }
+      }
+
       const savedUser = localStorage.getItem('iqac_user');
       return savedUser ? JSON.parse(savedUser) : null;
     } catch {
@@ -18,6 +45,24 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Check URL parameters for ?role=CHAIRMAN (or any URL parameter auto-login)
+    if (typeof window !== 'undefined' && window.location.search) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roleParam = urlParams.get('role');
+      if (roleParam && roleParam.toUpperCase() === 'CHAIRMAN') {
+        const autoChairman = {
+          id: 'CHAIRMAN_AUTO',
+          username: 'chairman',
+          full_name: 'Chairman',
+          role: 'CHAIRMAN',
+          department_name: 'SRM IST',
+          group: 'ALL'
+        };
+        setUserSession(autoChairman, 'auto_chairman_token');
+        return;
+      }
+    }
+
     const savedUser = localStorage.getItem('iqac_user');
     if (savedUser) {
       try {
@@ -42,14 +87,6 @@ export const AuthProvider = ({ children }) => {
       console.warn('Backend login fallback to local session auth:', backendErr);
     }
     return user;
-  };
-
-  const setUserSession = (userObj, tokenStr) => {
-    const activeToken = tokenStr || 'demo_token_' + userObj.id;
-    localStorage.setItem('iqac_token', activeToken);
-    localStorage.setItem('iqac_user', JSON.stringify(userObj));
-    setToken(activeToken);
-    setUser(userObj);
   };
 
   const logout = () => {
