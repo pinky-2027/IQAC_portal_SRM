@@ -76,7 +76,7 @@ export const getYearWiseKPI = async (kpiName, deptCode = 'BCA') => {
 const renameIntakeIndicator = (records) => {
   if (!Array.isArray(records)) return [];
   return records.map(r => {
-    if (r.indicator && (r.indicator.toLowerCase() === 'total intake' || r.indicator.toLowerCase() === 'intake')) {
+    if (r.indicator && (r.indicator.toLowerCase() === 'total intake' || r.indicator.toLowerCase() === 'intake' || r.indicator.toLowerCase().includes('total intake'))) {
       return { ...r, indicator: 'Total Students Admitted', originalIndicator: r.indicator };
     }
     return r;
@@ -152,6 +152,41 @@ export const getLegacyKpiClientData = (institution = 'FLABS', year = '2024-2025'
   };
 };
 
+const findMatchingParam = (dParams, baseIndicator) => {
+  if (!Array.isArray(dParams)) return null;
+  const baseLower = (baseIndicator || '').toLowerCase();
+  
+  let match = dParams.find(p => p.indicator && p.indicator.toLowerCase() === baseLower);
+  if (match) return match;
+
+  if (baseLower.includes('intake') || baseLower.includes('admitted')) {
+    match = dParams.find(p => p.indicator && (p.indicator.toLowerCase().includes('intake') || p.indicator.toLowerCase().includes('admitted')));
+    if (match) return match;
+  }
+
+  if (baseLower.includes('sanctioned')) {
+    match = dParams.find(p => p.indicator && p.indicator.toLowerCase().includes('sanctioned'));
+    if (match) return match;
+  }
+
+  if (baseLower.includes('faculty strength')) {
+    match = dParams.find(p => p.indicator && p.indicator.toLowerCase().includes('faculty strength'));
+    if (match) return match;
+  }
+
+  if (baseLower.includes('pass percentage')) {
+    match = dParams.find(p => p.indicator && p.indicator.toLowerCase().includes('pass percentage'));
+    if (match) return match;
+  }
+
+  if (baseLower.includes('placed')) {
+    match = dParams.find(p => p.indicator && p.indicator.toLowerCase().includes('placed'));
+    if (match) return match;
+  }
+
+  return null;
+};
+
 /**
  * Calculate total institution overview (Sum across all departments in an institution)
  */
@@ -208,7 +243,7 @@ export const getInstitutionalOverviewData = (institution = 'ET', year = '2025-20
     }
 
     let indicatorName = baseParam.indicator;
-    if (indicatorName.toLowerCase() === 'total intake' || indicatorName.toLowerCase() === 'intake') {
+    if (indicatorName.toLowerCase() === 'total intake' || indicatorName.toLowerCase() === 'intake' || indicatorName.toLowerCase().includes('total intake')) {
       indicatorName = 'Total Students Admitted';
     }
 
@@ -225,10 +260,7 @@ export const getInstitutionalOverviewData = (institution = 'ET', year = '2025-20
           ? deptDataObject[dk]
           : deptDataObject[dk]?.parameters || [];
 
-        const matchP = dParams.find(p => 
-          p.indicator === baseParam.indicator || 
-          (p.indicator.toLowerCase().includes('intake') && baseParam.indicator.toLowerCase().includes('intake'))
-        );
+        const matchP = findMatchingParam(dParams, baseParam.indicator);
 
         if (matchP) {
           const val = matchP.values ? matchP.values[yr] : matchP[yr];
@@ -240,8 +272,10 @@ export const getInstitutionalOverviewData = (institution = 'ET', year = '2025-20
             numVal = isNaN(parsed) ? 0 : parsed;
           }
           sum += numVal;
-          count++;
+          if (numVal > 0) count++;
           breakdown.push({ department: dk, value: numVal });
+        } else {
+          breakdown.push({ department: dk, value: 0 });
         }
       });
 
@@ -260,10 +294,7 @@ export const getInstitutionalOverviewData = (institution = 'ET', year = '2025-20
         ? deptDataObject[dk]
         : deptDataObject[dk]?.parameters || [];
 
-      const matchP = dParams.find(p => 
-        p.indicator === baseParam.indicator || 
-        (p.indicator.toLowerCase().includes('intake') && baseParam.indicator.toLowerCase().includes('intake'))
-      );
+      const matchP = findMatchingParam(dParams, baseParam.indicator);
 
       const yearsObj = {};
       availableYears.forEach(yr => {
