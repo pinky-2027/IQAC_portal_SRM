@@ -23,18 +23,18 @@ const Layout = () => {
   };
 
   const assignedInst = getUserAssignedInst();
+  const activeInst = location.state?.institution || assignedInst || 'ET';
+  const activeDept = location.state?.department || null;
 
   // Sidebar tree expansion states
   const [isInstTreeOpen, setIsInstTreeOpen] = useState(true);
-  const [openInstKey, setOpenInstKey] = useState(assignedInst || 'ET');
+  const [openInstKey, setOpenInstKey] = useState(activeInst);
 
   React.useEffect(() => {
-    if (assignedInst) {
-      setOpenInstKey(assignedInst);
-    } else if (location.state?.institution) {
-      setOpenInstKey(location.state.institution);
+    if (activeInst) {
+      setOpenInstKey(activeInst);
     }
-  }, [assignedInst, location.state]);
+  }, [activeInst]);
 
   const handleSignOut = () => {
     logout();
@@ -105,17 +105,13 @@ const Layout = () => {
     }
   };
 
-  const handleInstHeaderClick = (instCode, defaultDept) => {
+  const handleInstHeaderClick = (instCode) => {
     toggleInst(instCode);
-    if (isChairman) {
-      navigate('/admin/dashboard', {
-        state: {
-          institution: instCode
-        }
-      });
-    } else {
-      handleSelectDeptFromSidebar(instCode, defaultDept);
-    }
+    navigate('/admin/dashboard', {
+      state: {
+        institution: instCode
+      }
+    });
   };
 
   const getBreadcrumbTitle = () => {
@@ -138,6 +134,10 @@ const Layout = () => {
     if (user?.role === 'HOD') return `HOD (${user?.department_name || 'Institution'})`;
     if (user?.role === 'FACULTY') return `Faculty (${user?.department_name || 'Institution'})`;
     return user?.role || 'User';
+  };
+
+  const isDeptActive = (instCode, deptCode) => {
+    return activeInst === instCode && activeDept === deptCode;
   };
 
   return (
@@ -217,8 +217,8 @@ const Layout = () => {
                   {(!assignedInst || assignedInst === 'ET') && (
                     <div>
                       <button
-                        onClick={() => handleInstHeaderClick('ET', 'CSE')}
-                        className={`w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer ${openInstKey === 'ET' ? 'bg-white/10 font-bold text-white' : ''}`}
+                        onClick={() => handleInstHeaderClick('ET')}
+                        className={`w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer ${openInstKey === 'ET' && !activeDept ? 'bg-white/20 font-extrabold text-white ring-1 ring-amber-400/50' : openInstKey === 'ET' ? 'bg-white/10 font-bold text-white' : ''}`}
                       >
                         <div className="flex items-center space-x-2">
                           {openInstKey === 'ET' ? <ChevronDown className="w-3 h-3 text-blue-300" /> : <ChevronRight className="w-3 h-3 text-blue-300" />}
@@ -234,7 +234,7 @@ const Layout = () => {
                             <button
                               key={d.code}
                               onClick={() => handleSelectDeptFromSidebar('ET', d.code)}
-                              className="block w-full text-left py-1 px-2 text-[11px] text-blue-200 hover:text-white hover:bg-white/10 rounded font-medium truncate cursor-pointer"
+                              className={`block w-full text-left py-1 px-2 text-[11px] rounded transition-all truncate cursor-pointer ${isDeptActive('ET', d.code) ? 'bg-brand-blue text-white font-extrabold shadow-2xs' : 'text-blue-200 hover:text-white hover:bg-white/10 font-medium'}`}
                             >
                               {d.label}
                             </button>
@@ -248,8 +248,8 @@ const Layout = () => {
                   {(!assignedInst || assignedInst === 'FLABS') && (
                     <div>
                       <button
-                        onClick={() => handleInstHeaderClick('FLABS', 'BCA')}
-                        className={`w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer ${openInstKey === 'FLABS' ? 'bg-white/10 font-bold text-white' : ''}`}
+                        onClick={() => handleInstHeaderClick('FLABS')}
+                        className={`w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer ${openInstKey === 'FLABS' && !activeDept ? 'bg-white/20 font-extrabold text-white ring-1 ring-emerald-400/50' : openInstKey === 'FLABS' ? 'bg-white/10 font-bold text-white' : ''}`}
                       >
                         <div className="flex items-center space-x-2">
                           {openInstKey === 'FLABS' ? <ChevronDown className="w-3 h-3 text-blue-300" /> : <ChevronRight className="w-3 h-3 text-blue-300" />}
@@ -265,7 +265,7 @@ const Layout = () => {
                             <button
                               key={d.code}
                               onClick={() => handleSelectDeptFromSidebar('FLABS', d.code)}
-                              className="block w-full text-left py-1 px-2 text-[11px] text-blue-200 hover:text-white hover:bg-white/10 rounded font-medium truncate cursor-pointer"
+                              className={`block w-full text-left py-1 px-2 text-[11px] rounded transition-all truncate cursor-pointer ${isDeptActive('FLABS', d.code) ? 'bg-brand-blue text-white font-extrabold shadow-2xs' : 'text-blue-200 hover:text-white hover:bg-white/10 font-medium'}`}
                             >
                               {d.label}
                             </button>
@@ -279,8 +279,8 @@ const Layout = () => {
                   {(!assignedInst || assignedInst === 'MANAGEMENT') && (
                     <div>
                       <button
-                        onClick={() => handleInstHeaderClick('MANAGEMENT', 'MBA')}
-                        className={`w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer ${openInstKey === 'MANAGEMENT' ? 'bg-white/10 font-bold text-white' : ''}`}
+                        onClick={() => handleInstHeaderClick('MANAGEMENT')}
+                        className={`w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer ${openInstKey === 'MANAGEMENT' && !activeDept ? 'bg-white/20 font-extrabold text-white ring-1 ring-purple-400/50' : openInstKey === 'MANAGEMENT' ? 'bg-white/10 font-bold text-white' : ''}`}
                       >
                         <div className="flex items-center space-x-2">
                           {openInstKey === 'MANAGEMENT' ? <ChevronDown className="w-3 h-3 text-blue-300" /> : <ChevronRight className="w-3 h-3 text-blue-300" />}
@@ -296,7 +296,7 @@ const Layout = () => {
                             <button
                               key={d.code}
                               onClick={() => handleSelectDeptFromSidebar('MANAGEMENT', d.code)}
-                              className="block w-full text-left py-1 px-2 text-[11px] text-blue-200 hover:text-white hover:bg-white/10 rounded font-medium truncate cursor-pointer"
+                              className={`block w-full text-left py-1 px-2 text-[11px] rounded transition-all truncate cursor-pointer ${isDeptActive('MANAGEMENT', d.code) ? 'bg-brand-blue text-white font-extrabold shadow-2xs' : 'text-blue-200 hover:text-white hover:bg-white/10 font-medium'}`}
                             >
                               {d.label}
                             </button>
@@ -310,7 +310,7 @@ const Layout = () => {
                   {(!assignedInst || assignedInst === 'BARCH') && (
                     <div>
                       <button
-                        onClick={() => handleInstHeaderClick('BARCH', 'B.Arch')}
+                        onClick={() => handleInstHeaderClick('BARCH')}
                         className={`w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer ${openInstKey === 'BARCH' ? 'bg-white/10 font-bold text-white' : ''}`}
                       >
                         <div className="flex items-center space-x-2">

@@ -38,7 +38,7 @@ const Dashboard = () => {
   const [selectedInstCode, setSelectedInstCode] = useState(passedInst);
   const [selectedDept, setSelectedDept] = useState(passedDept);
   const [selectedYear, setSelectedYear] = useState('2025-2026'); // Global Year Filter
-  const [viewLevel, setViewLevel] = useState('overview'); // 'overview' (Level 2) | 'details' (Level 3)
+  const [viewLevel, setViewLevel] = useState('overview'); // 'overview' (Level 2) | 'details' (Level 3) | 'dept_single'
   const [selectedParamRecord, setSelectedParamRecord] = useState(null); // Level 3 parameter
   
   const [kpiLegacyData, setKpiLegacyData] = useState(null);
@@ -47,19 +47,28 @@ const Dashboard = () => {
 
   const availableYears = ['2021-2022', '2022-2023', '2023-2024', '2024-2025', '2025-2026'];
 
+  // Synchronize sidebar navigation click with right-hand dashboard view
   useEffect(() => {
-    if (assignedInst) {
-      setSelectedInstCode(assignedInst);
-      if (!location.state?.department) {
-        if (assignedInst === 'ET') setSelectedDept('CSE');
-        else if (assignedInst === 'MANAGEMENT') setSelectedDept('MBA');
-        else if (assignedInst === 'BARCH') setSelectedDept('B.Arch');
-        else setSelectedDept('BCA');
-      }
-    } else if (location.state?.institution) {
+    if (location.state?.institution) {
       setSelectedInstCode(location.state.institution);
       if (location.state.department) {
         setSelectedDept(location.state.department);
+        setViewLevel('dept_single');
+        setSelectedParamRecord(null);
+      } else {
+        // Institution header clicked in sidebar -> Always reset to Institutional Overview (Level 2)
+        setViewLevel('overview');
+        setSelectedParamRecord(null);
+      }
+    } else if (assignedInst) {
+      setSelectedInstCode(assignedInst);
+      if (location.state?.department) {
+        setSelectedDept(location.state.department);
+        setViewLevel('dept_single');
+        setSelectedParamRecord(null);
+      } else {
+        setViewLevel('overview');
+        setSelectedParamRecord(null);
       }
     }
   }, [assignedInst, location.state]);
@@ -83,19 +92,19 @@ const Dashboard = () => {
         return;
       }
 
-      if (isOverviewRole) {
-        // If a specific single department was selected from sidebar navigation
-        if (location.state?.department && viewLevel !== 'overview' && !selectedParamRecord) {
-          const deptData = getLegacyKpiClientData(selectedInstCode, selectedYear, location.state.department);
-          setKpiLegacyData(deptData);
-          if (deptData.records && deptData.records[0] && deptData.records[0].indicator) {
-            setSelectedTrendIndicator(deptData.records[0].indicator);
-          }
-          setLoading(false);
-          return;
+      // Single department view selected via sidebar
+      if (viewLevel === 'dept_single' && selectedDept) {
+        const deptData = getLegacyKpiClientData(selectedInstCode, selectedYear, selectedDept);
+        setKpiLegacyData(deptData);
+        if (deptData.records && deptData.records[0] && deptData.records[0].indicator) {
+          setSelectedTrendIndicator(deptData.records[0].indicator);
         }
+        setLoading(false);
+        return;
+      }
 
-        // Overview Mode for Chairman, Dean, and IQAC Coordinator
+      if (isOverviewRole) {
+        // Institutional Overview Mode (Level 2 & Level 3)
         const overview = getInstitutionalOverviewData(selectedInstCode, selectedYear);
         setKpiLegacyData(overview);
         if (overview.records && overview.records[0] && overview.records[0].indicator) {
@@ -143,7 +152,7 @@ const Dashboard = () => {
     setViewLevel('overview');
     setSelectedParamRecord(null);
     
-    // Clear location state department to ensure overview loads cleanly
+    // Reset location state department to ensure overview loads cleanly
     navigate('/admin/dashboard', { state: { institution: instCode } });
 
     setTimeout(() => {
@@ -230,14 +239,16 @@ const Dashboard = () => {
             INSTITUTIONAL PERFORMANCE PORTAL
           </p>
           <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-sans">
-            {getInstitutionDisplayName(selectedInstCode)} {isOverviewRole ? (viewLevel === 'details' ? '— Department Details' : 'Overview') : 'Dashboard'}
+            {getInstitutionDisplayName(selectedInstCode)} {viewLevel === 'dept_single' ? `— ${selectedDept} Department` : isOverviewRole ? (viewLevel === 'details' ? '— Department Details' : 'Overview') : 'Dashboard'}
           </h1>
           <p className="text-gray-300 text-xs sm:text-sm mt-1 font-medium">
-            {isOverviewRole 
-              ? (viewLevel === 'details' 
-                  ? `Department-wise parameter breakdown for ${selectedParamRecord?.indicator || 'selected metric'} (${selectedYear}).`
-                  : `Aggregated institutional overview across all departments in ${getInstitutionDisplayName(selectedInstCode)}.`)
-              : `View performance metrics across ${getInstitutionDisplayName(selectedInstCode)} departments.`
+            {viewLevel === 'dept_single' 
+              ? `Department performance indicators and longitudinal benchmark data for ${selectedDept}.`
+              : isOverviewRole 
+                ? (viewLevel === 'details' 
+                    ? `Department-wise parameter breakdown for ${selectedParamRecord?.indicator || 'selected metric'} (${selectedYear}).`
+                    : `Aggregated institutional overview across all departments in ${getInstitutionDisplayName(selectedInstCode)}.`)
+                : `View performance metrics across ${getInstitutionDisplayName(selectedInstCode)} departments.`
             }
           </p>
         </div>
@@ -350,7 +361,7 @@ const Dashboard = () => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             
             <div className="flex items-center space-x-3">
-              {isOverviewRole && viewLevel === 'details' && (
+              {(viewLevel === 'details' || viewLevel === 'dept_single') && (
                 <button
                   onClick={handleBackToOverview}
                   className="px-3 py-1.5 bg-brand-navy hover:bg-brand-blue text-white rounded-xl text-xs font-bold transition-all flex items-center shadow-2xs cursor-pointer"
@@ -361,11 +372,11 @@ const Dashboard = () => {
               )}
               <div>
                 <span className="text-[10px] font-bold text-brand-blue uppercase tracking-wider block">
-                  {isOverviewRole ? (viewLevel === 'details' ? 'Level 3 &bull; Parameter Details' : 'Level 2 &bull; Institutional Overview') : 'Assigned Institution'}
+                  {viewLevel === 'dept_single' ? `Department Scope &bull; ${selectedDept}` : isOverviewRole ? (viewLevel === 'details' ? 'Level 3 &bull; Parameter Details' : 'Level 2 &bull; Institutional Overview') : 'Assigned Institution'}
                 </span>
                 <h3 className="text-base font-bold text-brand-navy flex items-center">
                   <Building2 className="w-4 h-4 mr-2 text-brand-gold" />
-                  {getInstitutionDisplayName(selectedInstCode)}
+                  {getInstitutionDisplayName(selectedInstCode)} {viewLevel === 'dept_single' ? `(${selectedDept})` : ''}
                 </h3>
               </div>
             </div>
@@ -400,11 +411,11 @@ const Dashboard = () => {
           </div>
         ) : kpiLegacyData && kpiLegacyData.hasData ? (
           
-          /* VIEW LEVEL 2: INSTITUTIONAL OVERVIEW (CARDS + TREND GRAPH) */
-          viewLevel === 'overview' ? (
+          /* VIEW LEVEL 2: INSTITUTIONAL OVERVIEW / SINGLE DEPT CARDS + TREND GRAPH */
+          viewLevel === 'overview' || viewLevel === 'dept_single' ? (
             <div className="space-y-6">
               
-              {/* INSTITUTIONAL OVERVIEW PARAMETER CARDS */}
+              {/* INSTITUTIONAL / DEPARTMENT PARAMETER CARDS */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {kpiLegacyData.records.map((rec, idx) => {
                   if (rec.section) {
@@ -436,29 +447,31 @@ const Dashboard = () => {
                       </div>
 
                       <div className="pt-2.5 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-medium">
-                        <span>{selectedYear} Institutional Total</span>
-                        <button
-                          onClick={() => handleOpenParameterDetails(rec)}
-                          className="text-brand-blue font-bold hover:underline cursor-pointer flex items-center"
-                        >
-                          View Details &rarr;
-                        </button>
+                        <span>{selectedYear} {viewLevel === 'dept_single' ? `${selectedDept} Total` : 'Institutional Total'}</span>
+                        {viewLevel === 'overview' && (
+                          <button
+                            onClick={() => handleOpenParameterDetails(rec)}
+                            className="text-brand-blue font-bold hover:underline cursor-pointer flex items-center"
+                          >
+                            View Details &rarr;
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* LEVEL 2 LINE GRAPH: MULTI-YEAR INSTITUTIONAL SUM TREND */}
+              {/* LINE GRAPH: MULTI-YEAR TREND */}
               <div className="bg-white rounded-2xl p-6 shadow-2xs border border-gray-200/80 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 pb-3 gap-2">
                   <div>
                     <h3 className="text-base font-bold text-brand-navy flex items-center font-sans">
                       <TrendingUp className="w-5 h-5 mr-2 text-brand-blue" />
-                      Institutional Overview Multi-Year Trend Graph
+                      {viewLevel === 'dept_single' ? `${selectedDept} Department` : 'Institutional Overview'} Multi-Year Trend Graph
                     </h3>
                     <p className="text-xs text-brand-muted mt-0.5">
-                      Aggregated institutional longitudinal trend (2021-2022 to 2025-2026) for {getInstitutionDisplayName(selectedInstCode)}
+                      Longitudinal trend (2021-2022 to 2025-2026) for {viewLevel === 'dept_single' ? selectedDept : getInstitutionDisplayName(selectedInstCode)}
                     </p>
                   </div>
                 </div>
