@@ -17,6 +17,8 @@ const Dashboard = () => {
 
   const userRole = (user?.role || '').toUpperCase();
   const isChairman = userRole === 'CHAIRMAN';
+  const isDeanOrCoordinator = ['COLLEGE_DEAN', 'ADMIN', 'IQAC_COORDINATOR', 'DEAN'].includes(userRole);
+  const isOverviewRole = isChairman || isDeanOrCoordinator;
 
   const getUserAssignedInst = () => {
     if (isChairman) return null; // Chairman sees all
@@ -64,7 +66,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadHistoricalKpiData();
-  }, [selectedInstCode, selectedDept, selectedYear, isChairman, viewLevel, location.state]);
+  }, [selectedInstCode, selectedDept, selectedYear, isOverviewRole, viewLevel, location.state]);
 
   const loadHistoricalKpiData = async () => {
     setLoading(true);
@@ -81,8 +83,8 @@ const Dashboard = () => {
         return;
       }
 
-      if (isChairman) {
-        // If Chairman specifically selected a single department from sidebar
+      if (isOverviewRole) {
+        // If a specific single department was selected from sidebar navigation
         if (location.state?.department && viewLevel !== 'overview' && !selectedParamRecord) {
           const deptData = getLegacyKpiClientData(selectedInstCode, selectedYear, location.state.department);
           setKpiLegacyData(deptData);
@@ -93,7 +95,7 @@ const Dashboard = () => {
           return;
         }
 
-        // Default Chairman Level 2 (Overview) or Level 3 (Details)
+        // Overview Mode for Chairman, Dean, and IQAC Coordinator
         const overview = getInstitutionalOverviewData(selectedInstCode, selectedYear);
         setKpiLegacyData(overview);
         if (overview.records && overview.records[0] && overview.records[0].indicator) {
@@ -105,7 +107,7 @@ const Dashboard = () => {
         return;
       }
 
-      // Non-Chairman roles (Dean, IQAC Coordinator, HOD)
+      // Other roles
       try {
         const res = await apiService.getLegacyKpiData(selectedInstCode, selectedYear, selectedDept);
         if (res && res.records && res.records.length > 0) {
@@ -228,10 +230,10 @@ const Dashboard = () => {
             INSTITUTIONAL PERFORMANCE PORTAL
           </p>
           <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-sans">
-            {getInstitutionDisplayName(selectedInstCode)} {isChairman ? (viewLevel === 'details' ? '— Department Details' : 'Overview') : 'Dashboard'}
+            {getInstitutionDisplayName(selectedInstCode)} {isOverviewRole ? (viewLevel === 'details' ? '— Department Details' : 'Overview') : 'Dashboard'}
           </h1>
           <p className="text-gray-300 text-xs sm:text-sm mt-1 font-medium">
-            {isChairman 
+            {isOverviewRole 
               ? (viewLevel === 'details' 
                   ? `Department-wise parameter breakdown for ${selectedParamRecord?.indicator || 'selected metric'} (${selectedYear}).`
                   : `Aggregated institutional overview across all departments in ${getInstitutionDisplayName(selectedInstCode)}.`)
@@ -241,7 +243,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* LEVEL 1: 4 INSTITUTION SELECTION CARDS (ALWAYS AVAILABLE FOR CHAIRMAN) */}
+      {/* LEVEL 1: 4 INSTITUTION SELECTION CARDS (ALWAYS AVAILABLE FOR CHAIRMAN ONLY) */}
       {isChairman && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           
@@ -348,7 +350,7 @@ const Dashboard = () => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             
             <div className="flex items-center space-x-3">
-              {isChairman && viewLevel === 'details' && (
+              {isOverviewRole && viewLevel === 'details' && (
                 <button
                   onClick={handleBackToOverview}
                   className="px-3 py-1.5 bg-brand-navy hover:bg-brand-blue text-white rounded-xl text-xs font-bold transition-all flex items-center shadow-2xs cursor-pointer"
@@ -359,7 +361,7 @@ const Dashboard = () => {
               )}
               <div>
                 <span className="text-[10px] font-bold text-brand-blue uppercase tracking-wider block">
-                  {isChairman ? (viewLevel === 'details' ? 'Level 3 &bull; Parameter Details' : 'Level 2 &bull; Institutional Overview') : 'Assigned Institution'}
+                  {isOverviewRole ? (viewLevel === 'details' ? 'Level 3 &bull; Parameter Details' : 'Level 2 &bull; Institutional Overview') : 'Assigned Institution'}
                 </span>
                 <h3 className="text-base font-bold text-brand-navy flex items-center">
                   <Building2 className="w-4 h-4 mr-2 text-brand-gold" />
