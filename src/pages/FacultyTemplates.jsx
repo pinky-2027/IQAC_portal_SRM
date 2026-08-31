@@ -20,7 +20,7 @@ const FacultyTemplates = () => {
     { id: 4, year_name: '2024-25' },
     { id: 5, year_name: '2025-26' }
   ]);
-  const [selectedYearId, setSelectedYearId] = useState(4); // Default 2024-25
+  const [selectedYearId, setSelectedYearId] = useState(5); // Default 2025-26
   const [templates, setTemplates] = useState(DEFAULT_FACULTY_TEMPLATES);
   const [activeTemplate, setActiveTemplate] = useState(DEFAULT_FACULTY_TEMPLATES[0]);
   const [progress, setProgress] = useState({ steps: [] });

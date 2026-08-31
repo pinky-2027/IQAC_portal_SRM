@@ -8,7 +8,7 @@ const FacultyDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [years, setYears] = useState([]);
-  const [selectedYear, setSelectedYear] = useState('4'); // Default 2024-25
+  const [selectedYear, setSelectedYear] = useState('5'); // Default 2025-26
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
 

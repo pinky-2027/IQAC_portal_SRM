@@ -7,7 +7,7 @@ import { getDepartments, getAcademicYears, getKPIData } from '../services/dataSe
 
 const DepartmentDashboard = () => {
   const [selectedDept, setSelectedDept] = useState('flabs');
-  const [selectedYear, setSelectedYear] = useState('2024-2025');
+  const [selectedYear, setSelectedYear] = useState('2025-2026');
   const [kpiResult, setKpiResult] = useState(null);
   const [loading, setLoading] = useState(false);
   
