@@ -284,7 +284,7 @@ const Reports = () => {
                             : (rawVal !== undefined && rawVal !== null ? rawVal.toLocaleString() : '-');
 
                           return (
-                            <td key={yr} className="px-4 py-2 text-right text-brand-navy font-bold font-mono">
+                            <td key={yr} className="px-4 py-2 text-right text-brand-navy font-bold font-sans">
                               {displayVal}
                             </td>
                           );

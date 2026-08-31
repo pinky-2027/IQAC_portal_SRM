@@ -188,7 +188,7 @@ const PreviousYearData = () => {
             <Building2 className="w-4 h-4 mr-2 text-brand-gold" />
             {isHod ? `Department Archive (${user?.department_name || user?.department || selectedDept})` : 'Academic Data Archive Filter'}
           </h3>
-          <span className="text-[10px] bg-white/20 px-2.5 py-0.5 rounded font-mono font-bold">
+          <span className="text-[10px] bg-white/20 px-2.5 py-0.5 rounded font-sans font-bold">
             {isHod ? 'HOD Scoped Access' : 'IQAC Admin Access'}
           </span>
         </div>

@@ -195,7 +195,7 @@ const Dashboard = () => {
           <p className="text-[11px] font-bold text-amber-400 uppercase tracking-widest mb-1">
             INSTITUTIONAL PERFORMANCE
           </p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-serif">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-sans">
             {getInstitutionDisplayName(selectedInstCode)} Dashboard
           </h1>
           <p className="text-gray-300 text-xs sm:text-sm mt-1 font-medium">
@@ -411,10 +411,10 @@ const Dashboard = () => {
                     className={`bg-white rounded-2xl p-4 sm:p-5 shadow-2xs border border-gray-200/90 hover:shadow-md transition-all flex flex-col justify-between ${topAccent}`}
                   >
                     <div>
-                      <h4 className="text-xs sm:text-sm font-bold text-gray-700 mb-2 font-serif">
+                      <h4 className="text-xs sm:text-sm font-bold text-gray-700 mb-2 font-sans">
                         {indicator}
                       </h4>
-                      <div className="text-2xl sm:text-3xl font-bold font-serif text-brand-navy tracking-tight mb-3">
+                      <div className="text-2xl sm:text-3xl font-extrabold font-sans text-brand-navy tracking-tight mb-3">
                         {formattedVal}
                       </div>
                     </div>
@@ -434,7 +434,7 @@ const Dashboard = () => {
             <div className="bg-white rounded-2xl p-6 shadow-2xs border border-gray-200/80 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 pb-3 gap-2">
                 <div>
-                  <h3 className="text-base font-bold text-brand-navy flex items-center font-serif">
+                  <h3 className="text-base font-bold text-brand-navy flex items-center font-sans">
                     <TrendingUp className="w-5 h-5 mr-2 text-brand-blue" />
                     Visual Performance Representation ({kpiLegacyData.department})
                   </h3>
