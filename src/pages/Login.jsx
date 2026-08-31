@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, UserCheck, ShieldCheck, Award, FileText, GraduationCap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -16,19 +16,7 @@ const Login = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const navigate = useNavigate();
-  const { user, login, setUserSession } = useAuth();
-
-  useEffect(() => {
-    if (user) {
-      if (['ADMIN', 'COLLEGE_DEAN', 'CHAIRMAN'].includes(user.role)) {
-        navigate('/admin/dashboard', { replace: true });
-      } else if (user.role === 'HOD') {
-        navigate('/hod/dashboard', { replace: true });
-      } else if (user.role === 'FACULTY') {
-        navigate('/faculty/dashboard', { replace: true });
-      }
-    }
-  }, [user, navigate]);
+  const { login, setUserSession } = useAuth();
 
   const ROLE_CONFIGS = [
     { key: 'chairman', label: 'Chairman', icon: ShieldCheck, requiresGroup: false },
@@ -57,296 +45,348 @@ const Login = () => {
     setError('');
   };
 
-  const handleUserSelect = (userObj) => {
-    setSelectedUserId(userObj.id);
-    setSelectedUser(userObj);
-    setEmployeeId(userObj.employeeId);
-    setPassword('12345678');
-    setError('');
+  const handleProfileSelect = (userId) => {
+    setSelectedUserId(userId);
+    if (!userId) {
+      setSelectedUser(null);
+      setEmployeeId('');
+      setPassword('12345678');
+      return;
+    }
+
+    const foundUser = DEMO_USERS.find(
+      u => u.id === userId || u.employeeId === userId
+    );
+
+    if (foundUser) {
+      setSelectedUser(foundUser);
+      setEmployeeId(foundUser.employeeId || foundUser.id);
+      setPassword('12345678');
+      setError('');
+    } else {
+      setSelectedUser(null);
+      setEmployeeId('');
+      setPassword('12345678');
+    }
   };
 
-  const handleQuickChairmanLogin = () => {
-    const chairmanUser = DEMO_USERS.chairman[0];
-    setUserSession({
-      id: chairmanUser.id,
-      username: chairmanUser.employeeId,
-      full_name: chairmanUser.name,
-      role: 'CHAIRMAN',
-      department_name: 'SRM IST',
-      group: 'ALL'
+  // Filter available users for dropdown
+  const getFilteredUsers = () => {
+    if (!selectedRole) return [];
+
+    return DEMO_USERS.filter(u => {
+      if (selectedRole === 'chairman') {
+        return u.role === 'chairman' && (u.id === 'user_chairman' || u.employeeId === 'CHAIRMAN001');
+      }
+
+      let roleMatches = false;
+      if (selectedRole === 'dean') roleMatches = u.role === 'dean';
+      else if (selectedRole === 'iqac_coordinator') roleMatches = u.role === 'iqac_coordinator';
+      else if (selectedRole === 'hod') roleMatches = u.role === 'hod';
+      else if (selectedRole === 'faculty') roleMatches = u.role === 'faculty' || u.role === 'supervisor' || u.role === 'scholar';
+
+      if (!roleMatches) return false;
+
+      if (selectedGroup && u.group) {
+        return u.group === selectedGroup || u.group.includes(selectedGroup);
+      }
+      return !selectedGroup;
     });
-    navigate('/admin/dashboard');
   };
 
-  const handleSubmit = async (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (!selectedRole) {
-      setError('Please select a login role.');
+    if (!selectedUser) {
+      setError('Please choose a profile from the dropdown before signing in.');
       return;
     }
 
-    if (selectedRole !== 'chairman' && !selectedGroup) {
-      setError('Please select an institution / department group.');
+    if (!password || password.trim() === '') {
+      setError('Please enter your password');
       return;
     }
 
-    if (selectedRole !== 'chairman' && !selectedUser) {
-      setError('Please select your user profile.');
-      return;
-    }
-
-    if (password !== '12345678') {
-      setError('Invalid password. Demo password is: 12345678');
+    if (password.trim() !== '12345678') {
+      setError('Incorrect password. Please try again. (Demo password: 12345678)');
       return;
     }
 
     setSubmitting(true);
-
     try {
-      if (selectedRole === 'chairman') {
-        const cUser = DEMO_USERS.chairman[0];
-        setUserSession({
-          id: cUser.id,
-          username: cUser.employeeId,
-          full_name: cUser.name,
-          role: 'CHAIRMAN',
-          department_name: 'SRM IST',
-          group: 'ALL'
-        });
+      let appRole = selectedUser.role.toUpperCase();
+      if (selectedRole === 'chairman') appRole = 'CHAIRMAN';
+      else if (selectedRole === 'dean') appRole = 'COLLEGE_DEAN';
+      else if (selectedRole === 'iqac_coordinator') appRole = 'ADMIN';
+      else if (selectedRole === 'hod') appRole = 'HOD';
+      else if (selectedRole === 'faculty') appRole = 'FACULTY';
+
+      const userPayload = {
+        id: selectedUser.id,
+        username: selectedUser.employeeId || selectedUser.id,
+        full_name: selectedUser.name,
+        role: appRole,
+        department_name: selectedUser.department || selectedUser.group || 'SRM IST',
+        employee_id: selectedUser.employeeId,
+        group: selectedUser.group
+      };
+
+      setUserSession(userPayload, 'demo_token_' + selectedUser.id);
+
+      try {
+        await login(selectedUser.employeeId || selectedUser.id, password, null);
+      } catch (backendErr) {
+        // Fallback for demo session
+      }
+
+      if (['ADMIN', 'COLLEGE_DEAN', 'CHAIRMAN'].includes(appRole)) {
         navigate('/admin/dashboard');
-        return;
-      }
-
-      let activeUserObj = selectedUser;
-      let userRoleCode = 'ADMIN';
-
-      if (selectedRole === 'dean') {
-        userRoleCode = 'COLLEGE_DEAN';
-      } else if (selectedRole === 'iqac_coordinator') {
-        userRoleCode = 'ADMIN';
-      } else if (selectedRole === 'hod') {
-        userRoleCode = 'HOD';
-      } else if (selectedRole === 'faculty') {
-        userRoleCode = 'FACULTY';
-      }
-
-      setUserSession({
-        id: activeUserObj.id,
-        username: activeUserObj.employeeId,
-        full_name: activeUserObj.name,
-        role: userRoleCode,
-        department_name: activeUserObj.department,
-        group: selectedGroup
-      });
-
-      if (userRoleCode === 'HOD') {
+      } else if (appRole === 'HOD') {
         navigate('/hod/dashboard');
-      } else if (userRoleCode === 'FACULTY') {
-        navigate('/faculty/dashboard');
       } else {
-        navigate('/admin/dashboard');
+        navigate('/faculty/dashboard');
       }
     } catch (err) {
-      setError('Authentication failed. Please check credentials.');
-    } finally {
+      setError(err.message || 'Authentication failed. Please check credentials.');
       setSubmitting(false);
     }
   };
 
-  const getFilteredUsers = () => {
-    if (!selectedRole) return [];
-    const list = DEMO_USERS[selectedRole] || [];
-    if (!selectedGroup) return list;
-
-    return list.filter(u => {
-      const uDept = (u.department || '').toUpperCase();
-      const sGroup = selectedGroup.toUpperCase();
-      if (sGroup.includes('E&T') || sGroup.includes('ET')) {
-        return uDept.includes('E&T') || uDept.includes('ET') || uDept.includes('ENGIN') || uDept.includes('CSE') || uDept.includes('ECE') || uDept.includes('MECH');
-      }
-      if (sGroup.includes('MANAGEMENT') || sGroup.includes('MGMT') || sGroup.includes('MBA') || sGroup.includes('BBA')) {
-        return uDept.includes('MANAGEMENT') || uDept.includes('MGMT') || uDept.includes('MBA') || uDept.includes('BBA') || uDept.includes('FOM');
-      }
-      if (sGroup.includes('ARCH')) {
-        return uDept.includes('ARCH') || uDept.includes('SEAD');
-      }
-      // FLABS default
-      return true;
-    });
-  };
+  const filteredUsers = getFilteredUsers();
+  const currentRoleObj = ROLE_CONFIGS.find(r => r.key === selectedRole);
 
   return (
-    <div className="min-h-screen bg-brand-bg flex flex-col justify-center py-10 sm:px-6 lg:px-8 font-sans">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        {/* LOGO HEADER */}
-        <div className="inline-flex items-center justify-center p-3 bg-brand-navy rounded-2xl shadow-md mb-4 border border-brand-blue/30">
-          <ShieldCheck className="w-10 h-10 text-brand-gold" />
+    <div className="min-h-screen w-full flex bg-brand-bg font-sans overflow-hidden">
+      
+      {/* LEFT SIDE: INSTITUTIONAL BRANDING & CAMPUS BUILDING PHOTO */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-brand-navy flex-col justify-between p-10 overflow-hidden">
+        {/* College Building Image Background */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 mix-blend-overlay"
+          style={{ backgroundImage: 'url("/college_img.jpeg")' }}
+        ></div>
+        
+        {/* Gradient Blur Orbs */}
+        <div className="absolute -top-32 -left-32 w-96 h-96 bg-brand-blue rounded-full mix-blend-multiply filter blur-3xl opacity-50"></div>
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-brand-gold rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+
+        {/* Top Header Logo & Institution Name */}
+        <div className="relative z-10">
+          <div className="flex items-center space-x-3.5 bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/20 inline-flex shadow-lg">
+            <img src="/srm-logo-clean.svg" alt="SRM IST Logo" className="h-12 w-auto object-contain filter drop-shadow-md" />
+            <div className="border-l border-white/30 pl-3.5">
+              <h1 className="text-xl font-bold text-white tracking-wide">SRM Institute of Science &amp; Technology</h1>
+              <p className="text-brand-gold font-semibold tracking-wider text-[11px] uppercase mt-0.5">Ramapuram Campus &bull; IQAC Portal</p>
+            </div>
+          </div>
+          
+          <h2 className="text-4xl font-extrabold text-white leading-tight mt-10">
+            Institutional Quality Assurance &amp;<br />
+            Data Analytics Portal
+          </h2>
+          <p className="text-blue-100 text-sm mt-3 max-w-lg font-light leading-relaxed">
+            Executive Analytics &amp; Quality Monitoring for Chairman, Deans, IQAC Coordinators, HODs, and Faculty across E&amp;T, FLABS, Management, and B.Arch.
+          </p>
         </div>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-brand-navy tracking-tight">
-          SRM IST IQAC Portal
-        </h2>
-        <p className="mt-1 text-xs sm:text-sm text-brand-muted">
-          Institutional Quality Assurance Cell Benchmark &amp; Analytics System
-        </p>
+
+        {/* Tagline / Motto */}
+        <div className="relative z-10">
+          <p className="text-white/80 text-xs italic border-l-2 border-brand-gold pl-3 max-w-md">
+            "Quality is never an accident; it is always the result of high intention, sincere effort, intelligent direction and skillful execution."
+          </p>
+        </div>
       </div>
 
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-lg">
-        <div className="bg-white py-8 px-6 shadow-xl rounded-2xl border border-gray-200/80 sm:px-10">
+      {/* RIGHT SIDE: IQAC PORTAL SIGN IN & 5 LOGIN ROLES */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative bg-gradient-to-br from-brand-bg to-white overflow-y-auto">
+        <div className="w-full max-w-md bg-white p-7 sm:p-8 rounded-2xl shadow-[0_10px_35px_rgba(18,59,109,0.08)] border border-gray-100 animate-fade-in-up">
           
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          {/* Mobile Header Logo (visible only on small screens) */}
+          <div className="lg:hidden flex flex-col items-center mb-6 text-center">
+            <img src="/srm-logo-clean.svg" alt="SRM IST Logo" className="h-14 w-auto mb-2 object-contain" />
+            <h1 className="text-lg font-bold text-brand-navy">SRM IST — IQAC Portal</h1>
+          </div>
+
+          <div className="mb-5">
+            <h2 className="text-2xl font-bold text-brand-navy mb-0.5">IQAC Portal Sign In</h2>
+            <p className="text-brand-muted text-xs">Select your login role and choose your profile to proceed</p>
+          </div>
+
+          <div className="space-y-4">
             
-            {/* STEP 1: SELECT LOGIN ROLE */}
+            {/* STEP 1: 5 LOGIN ROLES */}
             <div>
-              <label className="block text-xs font-bold text-brand-navy uppercase tracking-wider mb-2">
-                1. Select Portal Login Role
+              <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                Select Login Role
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {ROLE_CONFIGS.map(role => {
+              <div className="grid grid-cols-3 gap-1.5 p-1 bg-brand-bg rounded-xl border border-gray-200">
+                {ROLE_CONFIGS.map((role) => {
                   const Icon = role.icon;
-                  const isSelected = selectedRole === role.key;
+                  const isActive = selectedRole === role.key;
                   return (
                     <button
                       key={role.key}
                       type="button"
                       onClick={() => handleRoleSelect(role.key)}
-                      className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
-                        isSelected 
-                          ? 'border-brand-blue bg-blue-50/50 ring-2 ring-brand-blue/30 text-brand-blue font-bold shadow-2xs' 
-                          : 'border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50'
+                      className={`py-2 px-1 rounded-lg text-xs font-bold transition-all flex flex-col items-center justify-center text-center cursor-pointer ${
+                        isActive
+                          ? 'bg-brand-navy text-white shadow-sm'
+                          : 'text-brand-muted hover:text-brand-navy hover:bg-white/60'
                       }`}
                     >
-                      <Icon className={`w-5 h-5 mb-2 ${isSelected ? 'text-brand-blue' : 'text-gray-400'}`} />
-                      <span className="text-xs font-bold leading-tight">{role.label}</span>
+                      <Icon className={`w-3.5 h-3.5 mb-1 ${isActive ? 'text-brand-gold' : 'text-brand-blue'}`} />
+                      <span>{role.label}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* QUICK CHAIRMAN ACCESS BUTTON */}
-            {selectedRole === 'chairman' && (
-              <div className="bg-amber-50 rounded-xl p-4 border border-amber-200 space-y-2">
-                <div className="flex items-center space-x-2 text-amber-900 font-bold text-xs">
-                  <ShieldCheck className="w-4 h-4 text-amber-600" />
-                  <span>Chairman Direct Access</span>
-                </div>
-                <p className="text-[11px] text-amber-800 leading-relaxed">
-                  Full institutional access across E&amp;T, FLABS, Management, and B.Arch.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleQuickChairmanLogin}
-                  className="w-full py-2 bg-brand-navy hover:bg-brand-blue text-white font-bold text-xs rounded-lg transition-all cursor-pointer shadow-2xs"
-                >
-                  Enter Chairman Portal Directly &rarr;
-                </button>
-              </div>
-            )}
-
-            {/* STEP 2: SELECT INSTITUTION / GROUP (FOR DEAN, IQAC, HOD, FACULTY) */}
-            {selectedRole && selectedRole !== 'chairman' && (
-              <div>
-                <label className="block text-xs font-bold text-brand-navy uppercase tracking-wider mb-2">
-                  2. Select Institution / School
+            {/* STEP 2: SELECT GROUP (FOR DEAN, IQAC COORDINATOR, HOD, FACULTY) */}
+            {selectedRole && currentRoleObj?.requiresGroup && (
+              <div className="animate-fade-in">
+                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                  Select Group / School
                 </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { name: 'E&T (Engineering & Tech)', key: 'E&T' },
-                    { name: 'FLABS (Science & Humanities)', key: 'FLABS' },
-                    { name: 'Faculty of Management', key: 'MANAGEMENT' },
-                    { name: 'School of Architecture', key: 'BARCH' }
-                  ].map(grp => (
-                    <button
-                      key={grp.key}
-                      type="button"
-                      onClick={() => handleGroupSelect(grp.key)}
-                      className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all cursor-pointer ${
-                        selectedGroup === grp.key
-                          ? 'border-brand-blue bg-blue-50/50 ring-2 ring-brand-blue/30 text-brand-blue shadow-2xs'
-                          : 'border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {grp.name}
-                    </button>
-                  ))}
-                </div>
+                <select
+                  value={selectedGroup}
+                  onChange={(e) => handleGroupSelect(e.target.value)}
+                  className="w-full bg-brand-bg border border-gray-200 rounded-xl py-2 px-3 text-xs font-bold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue cursor-pointer"
+                >
+                  <option value="">— Choose Group —</option>
+                  <option value="E&T">E&amp;T (Engineering &amp; Technology)</option>
+                  <option value="FLABS">FLABS (Science &amp; Humanities)</option>
+                  <option value="Management">Management (FOM)</option>
+                  <option value="B.Arch">B.Arch (Architecture)</option>
+                </select>
               </div>
             )}
 
-            {/* STEP 3: SELECT USER PROFILE */}
-            {selectedRole && selectedRole !== 'chairman' && selectedGroup && (
-              <div>
-                <label className="block text-xs font-bold text-brand-navy uppercase tracking-wider mb-2">
-                  3. Select Profile / User
+            {/* STEP 3: CHOOSE YOUR PROFILE DROPDOWN */}
+            {selectedRole && (!currentRoleObj?.requiresGroup || selectedGroup) && (
+              <div className="animate-fade-in">
+                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                  Choose Your Profile <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={selectedUserId}
-                  onChange={(e) => {
-                    const u = getFilteredUsers().find(x => x.id === e.target.value);
-                    if (u) handleUserSelect(u);
-                  }}
-                  className="w-full bg-gray-50 border border-gray-300 text-brand-navy text-xs font-bold rounded-xl p-3 focus:ring-2 focus:ring-brand-blue focus:outline-none cursor-pointer"
+                  onChange={(e) => handleProfileSelect(e.target.value)}
+                  className="w-full bg-blue-50/60 border border-blue-200 rounded-xl py-2 px-3 text-xs font-bold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue cursor-pointer"
                 >
-                  <option value="">-- Choose User Profile --</option>
-                  {getFilteredUsers().map(u => (
+                  <option value="">— Choose profile from dropdown —</option>
+                  {filteredUsers.map((u) => (
                     <option key={u.id} value={u.id}>
-                      {u.name} ({u.department || selectedGroup})
+                      {u.name} {u.department ? `— ${u.department}` : ''} ({u.employeeId || 'No ID'})
                     </option>
                   ))}
                 </select>
               </div>
             )}
 
-            {/* PASSWORD INPUT & AUTH BUTTON */}
-            {selectedRole && (
-              <div className="space-y-4 pt-2 border-t border-gray-100">
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-xs font-bold text-brand-navy">
-                      Password
-                    </label>
-                    <span className="text-[10px] font-bold text-brand-blue bg-blue-50 px-2 py-0.5 rounded">
-                      Demo Password: 12345678
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-gray-50 border border-gray-300 text-brand-navy text-xs font-bold rounded-xl p-3 pr-10 focus:ring-2 focus:ring-brand-blue focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
+            {/* ACTIVE PROFILE PREVIEW CARD */}
+            {selectedUser && (
+              <div className="bg-gradient-to-br from-blue-50/90 to-white p-3.5 rounded-xl border border-blue-200 shadow-2xs animate-fade-in space-y-1.5">
+                <div className="flex items-center justify-between pb-1.5 border-b border-blue-100">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-blue">Active Profile</span>
+                  <span className="px-2 py-0.5 bg-brand-navy text-white text-[9px] font-bold rounded-md uppercase">
+                    {selectedUser.role}
+                  </span>
                 </div>
 
-                {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-xs font-bold">
-                    {error}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-[9px] text-gray-400 font-semibold block uppercase">Full Name</span>
+                    <span className="font-bold text-brand-navy truncate block">{selectedUser.name}</span>
                   </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-3 bg-brand-navy hover:bg-brand-blue text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center space-x-2 cursor-pointer"
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span>{submitting ? 'Authenticating...' : 'Sign In to Portal'}</span>
-                </button>
+                  <div>
+                    <span className="text-[9px] text-gray-400 font-semibold block uppercase">Employee ID</span>
+                    <span className="font-mono font-bold text-brand-blue truncate block">{selectedUser.employeeId || '—'}</span>
+                  </div>
+                  {selectedUser.group && (
+                    <div>
+                      <span className="text-[9px] text-gray-400 font-semibold block uppercase">Group</span>
+                      <span className="font-semibold text-gray-700 truncate block">{selectedUser.group}</span>
+                    </div>
+                  )}
+                  {selectedUser.department && (
+                    <div>
+                      <span className="text-[9px] text-gray-400 font-semibold block uppercase">Department</span>
+                      <span className="font-semibold text-gray-700 truncate block">{selectedUser.department}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
-          </form>
+            {/* ERROR DISPLAY */}
+            {error && (
+              <div className="bg-red-50 text-red-700 text-xs p-2.5 rounded-xl border border-red-200 font-semibold text-center">
+                {error}
+              </div>
+            )}
 
+            {/* LOGIN FORM */}
+            <form onSubmit={handleFormSubmit} className="space-y-3.5 pt-1">
+              <div>
+                <label className="block text-[10px] font-bold text-brand-navy uppercase tracking-wider mb-1">
+                  Employee ID / Username
+                </label>
+                <input
+                  type="text"
+                  readOnly
+                  value={employeeId}
+                  placeholder="Select profile above to auto-fill"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-xl py-2 px-3 text-xs font-mono font-bold text-brand-navy cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-brand-navy uppercase tracking-wider mb-1">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter password"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 pl-3 pr-10 text-xs font-semibold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-brand-navy cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting || !selectedUser}
+                className="w-full py-2.5 px-4 bg-brand-navy hover:bg-brand-blue text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>
+                  {submitting
+                    ? 'Authenticating...'
+                    : selectedUser
+                    ? `Sign In as ${selectedUser.name}`
+                    : 'Select Profile to Sign In'}
+                </span>
+              </button>
+            </form>
+
+            <div className="mt-4 text-center pt-3 border-t border-gray-100">
+              <p className="text-[10px] text-brand-muted font-semibold uppercase tracking-wider">
+                SRM Institute of Science &amp; Technology &bull; Internal Quality Assurance Cell
+              </p>
+            </div>
+
+          </div>
         </div>
       </div>
     </div>
