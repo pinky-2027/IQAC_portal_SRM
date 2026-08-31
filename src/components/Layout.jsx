@@ -26,7 +26,7 @@ const Layout = () => {
 
   // Sidebar tree expansion states
   const [isInstTreeOpen, setIsInstTreeOpen] = useState(true);
-  const [openInstKey, setOpenInstKey] = useState(assignedInst || 'FLABS');
+  const [openInstKey, setOpenInstKey] = useState(assignedInst || 'ET');
 
   React.useEffect(() => {
     if (assignedInst) {
@@ -40,6 +40,22 @@ const Layout = () => {
     logout();
     navigate('/login');
   };
+
+  const etDepts = [
+    { code: 'CSE', label: 'CSE' },
+    { code: 'IT', label: 'IT' },
+    { code: 'LCS', label: 'LCS' },
+    { code: 'MATHS', label: 'Maths' },
+    { code: 'PHYSICS', label: 'Physics' },
+    { code: 'CHEMISTRY', label: 'Chemistry' },
+    { code: 'EEE', label: 'EEE' },
+    { code: 'ECE-ECE DS', label: 'ECE' },
+    { code: 'BIOTECH', label: 'Biotech' },
+    { code: 'BIOMEDICAL', label: 'Biomedical' },
+    { code: 'CIVIL', label: 'Civil' },
+    { code: 'MECH', label: 'Mechanical' },
+    { code: 'AIMLAI', label: 'AIML' }
+  ];
 
   const flabsDepts = [
     { code: 'BCA', label: 'BCA' },
@@ -58,29 +74,13 @@ const Layout = () => {
     { code: 'FD', label: 'Fashion Des' }
   ];
 
-  const etDepts = [
-    { code: 'CSE', label: 'CSE' },
-    { code: 'IT', label: 'IT' },
-    { code: 'LCS', label: 'LCS' },
-    { code: 'MATHS', label: 'Maths' },
-    { code: 'PHYSICS', label: 'Physics' },
-    { code: 'CHEMISTRY', label: 'Chemistry' },
-    { code: 'EEE', label: 'EEE' },
-    { code: 'ECE-ECE DS', label: 'ECE' },
-    { code: 'BIOTECH', label: 'Biotech' },
-    { code: 'BIOMEDICAL', label: 'Biomedical' },
-    { code: 'CIVIL', label: 'Civil' },
-    { code: 'MECH', label: 'Mechanical' },
-    { code: 'AIMLAI', label: 'AIML' }
-  ];
-
   const mgmtDepts = [
     { code: 'MBA', label: 'MBA Program' },
     { code: 'BBA', label: 'BBA Program' }
   ];
 
   const handleSelectDeptFromSidebar = (instCode, deptCode) => {
-    if (isHod) return; // HOD cannot select other departments
+    if (isHod) return;
     if (assignedInst && instCode !== assignedInst) return;
     
     navigate('/admin/dashboard', {
@@ -99,6 +99,11 @@ const Layout = () => {
     } else {
       setOpenInstKey(key);
     }
+  };
+
+  const handleInstHeaderClick = (instCode, defaultDept) => {
+    toggleInst(instCode);
+    handleSelectDeptFromSidebar(instCode, defaultDept);
   };
 
   const getBreadcrumbTitle = () => {
@@ -149,7 +154,7 @@ const Layout = () => {
             {isChairman && (
               <button
                 onClick={() => {
-                  navigate('/admin/dashboard', { state: { institution: 'FLABS', department: 'BCA' } });
+                  navigate('/admin/dashboard', { state: { institution: 'ET', department: 'CSE' } });
                 }}
                 className="px-2 py-0.5 bg-white/10 hover:bg-white/20 text-white rounded text-[10px] font-bold transition-all flex items-center cursor-pointer"
               >
@@ -173,7 +178,7 @@ const Layout = () => {
             </Link>
           </div>
 
-          {/* EXPANDABLE INSTITUTION & DEPARTMENT TREE (ONLY FOR ADMIN/CHAIRMAN/DEAN/IQAC) */}
+          {/* EXPANDABLE INSTITUTION & DEPARTMENT TREE (ORDERED: E&T, FLABS, Management, B.Arch) */}
           {!isHod && ['ADMIN', 'COLLEGE_DEAN', 'CHAIRMAN', 'IQAC_COORDINATOR', 'DEAN'].includes(roleUpper) && (
             <div className="space-y-1">
               <button
@@ -196,41 +201,11 @@ const Layout = () => {
               {isInstTreeOpen && (
                 <div className="pl-4 space-y-1 text-xs font-semibold">
                   
-                  {/* FLABS */}
-                  {(!assignedInst || assignedInst === 'FLABS') && (
-                    <div>
-                      <button
-                        onClick={() => toggleInst('FLABS')}
-                        className="w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center space-x-2">
-                          {openInstKey === 'FLABS' ? <ChevronDown className="w-3 h-3 text-blue-300" /> : <ChevronRight className="w-3 h-3 text-blue-300" />}
-                          <Layers className="w-3.5 h-3.5 text-purple-300" />
-                          <span className="font-bold text-white">FLABS</span>
-                        </div>
-                      </button>
-
-                      {openInstKey === 'FLABS' && (
-                        <div className="pl-6 py-1 space-y-1 border-l border-white/10 ml-3">
-                          {flabsDepts.map(d => (
-                            <button
-                              key={d.code}
-                              onClick={() => handleSelectDeptFromSidebar('FLABS', d.code)}
-                              className="block w-full text-left py-1 px-2 text-[11px] text-blue-200 hover:text-white hover:bg-white/10 rounded font-medium truncate cursor-pointer"
-                            >
-                              {d.label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* E&T */}
+                  {/* 1. E&T */}
                   {(!assignedInst || assignedInst === 'ET') && (
                     <div>
                       <button
-                        onClick={() => toggleInst('ET')}
+                        onClick={() => handleInstHeaderClick('ET', 'CSE')}
                         className="w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
                       >
                         <div className="flex items-center space-x-2">
@@ -256,24 +231,41 @@ const Layout = () => {
                     </div>
                   )}
 
-                  {/* B.Arch */}
-                  {(!assignedInst || assignedInst === 'BARCH') && (
+                  {/* 2. FLABS */}
+                  {(!assignedInst || assignedInst === 'FLABS') && (
                     <div>
                       <button
-                        onClick={() => handleSelectDeptFromSidebar('BARCH', 'B.Arch')}
-                        className="w-full flex items-center space-x-2 py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                        onClick={() => handleInstHeaderClick('FLABS', 'BCA')}
+                        className="w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
                       >
-                        <Layers className="w-3.5 h-3.5 text-slate-300" />
-                        <span className="font-bold text-white">B.Arch</span>
+                        <div className="flex items-center space-x-2">
+                          {openInstKey === 'FLABS' ? <ChevronDown className="w-3 h-3 text-blue-300" /> : <ChevronRight className="w-3 h-3 text-blue-300" />}
+                          <Layers className="w-3.5 h-3.5 text-purple-300" />
+                          <span className="font-bold text-white">FLABS</span>
+                        </div>
                       </button>
+
+                      {openInstKey === 'FLABS' && (
+                        <div className="pl-6 py-1 space-y-1 border-l border-white/10 ml-3">
+                          {flabsDepts.map(d => (
+                            <button
+                              key={d.code}
+                              onClick={() => handleSelectDeptFromSidebar('FLABS', d.code)}
+                              className="block w-full text-left py-1 px-2 text-[11px] text-blue-200 hover:text-white hover:bg-white/10 rounded font-medium truncate cursor-pointer"
+                            >
+                              {d.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* Management */}
+                  {/* 3. Management */}
                   {(!assignedInst || assignedInst === 'MANAGEMENT') && (
                     <div>
                       <button
-                        onClick={() => toggleInst('MANAGEMENT')}
+                        onClick={() => handleInstHeaderClick('MANAGEMENT', 'MBA')}
                         className="w-full flex items-center justify-between py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
                       >
                         <div className="flex items-center space-x-2">
@@ -296,6 +288,19 @@ const Layout = () => {
                           ))}
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* 4. B.Arch */}
+                  {(!assignedInst || assignedInst === 'BARCH') && (
+                    <div>
+                      <button
+                        onClick={() => handleSelectDeptFromSidebar('BARCH', 'B.Arch')}
+                        className="w-full flex items-center space-x-2 py-1.5 px-2 rounded text-blue-100 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                      >
+                        <Layers className="w-3.5 h-3.5 text-slate-300" />
+                        <span className="font-bold text-white">B.Arch</span>
+                      </button>
                     </div>
                   )}
 

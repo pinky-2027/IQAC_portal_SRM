@@ -29,8 +29,8 @@ const Dashboard = () => {
 
   const assignedInst = getUserAssignedInst();
 
-  const passedInst = assignedInst || location.state?.institution || 'FLABS';
-  const passedDept = location.state?.department || (passedInst === 'ET' ? 'CSE' : passedInst === 'MANAGEMENT' ? 'MBA' : passedInst === 'BARCH' ? 'B.Arch' : 'BCA');
+  const passedInst = assignedInst || location.state?.institution || 'ET';
+  const passedDept = location.state?.department || (passedInst === 'FLABS' ? 'BCA' : passedInst === 'MANAGEMENT' ? 'MBA' : passedInst === 'BARCH' ? 'B.Arch' : 'CSE');
 
   const [selectedInstCode, setSelectedInstCode] = useState(passedInst);
   const [selectedDept, setSelectedDept] = useState(passedDept);
@@ -208,31 +208,7 @@ const Dashboard = () => {
       {isChairman && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           
-          {/* CARD 1: FLABS */}
-          <div 
-            onClick={() => handleSelectScope('FLABS', 'BCA')}
-            className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${
-              selectedInstCode === 'FLABS' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                  <Microscope className="w-5 h-5" />
-                </div>
-                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-bold border border-emerald-200">
-                  14 Depts
-                </span>
-              </div>
-
-              <h3 className="text-lg font-bold text-brand-navy mb-1">FLABS</h3>
-              <p className="text-[11px] text-gray-500 leading-relaxed font-medium">
-                Faculty of Science &amp; Humanities performance metrics
-              </p>
-            </div>
-          </div>
-
-          {/* CARD 2: E&T */}
+          {/* CARD 1: E&T */}
           <div 
             onClick={() => handleSelectScope('ET', 'CSE')}
             className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${
@@ -256,31 +232,31 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* CARD 3: B.Arch */}
+          {/* CARD 2: FLABS */}
           <div 
-            onClick={() => handleSelectScope('BARCH', 'B.Arch')}
+            onClick={() => handleSelectScope('FLABS', 'BCA')}
             className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${
-              selectedInstCode === 'BARCH' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
+              selectedInstCode === 'FLABS' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
             }`}
           >
             <div>
               <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
-                  <Building2 className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                  <Microscope className="w-5 h-5" />
                 </div>
-                <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full text-[10px] font-bold border border-slate-200">
-                  Architecture
+                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-bold border border-emerald-200">
+                  14 Depts
                 </span>
               </div>
 
-              <h3 className="text-lg font-bold text-brand-navy mb-1">B.Arch</h3>
+              <h3 className="text-lg font-bold text-brand-navy mb-1">FLABS</h3>
               <p className="text-[11px] text-gray-500 leading-relaxed font-medium">
-                School of Architecture performance index
+                Faculty of Science &amp; Humanities performance metrics
               </p>
             </div>
           </div>
 
-          {/* CARD 4: Management */}
+          {/* CARD 3: Management */}
           <div 
             onClick={() => handleSelectScope('MANAGEMENT', 'MBA')}
             className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${
@@ -300,6 +276,30 @@ const Dashboard = () => {
               <h3 className="text-lg font-bold text-brand-navy mb-1">Management</h3>
               <p className="text-[11px] text-gray-500 leading-relaxed font-medium">
                 Faculty of Management datasets
+              </p>
+            </div>
+          </div>
+
+          {/* CARD 4: B.Arch */}
+          <div 
+            onClick={() => handleSelectScope('BARCH', 'B.Arch')}
+            className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${
+              selectedInstCode === 'BARCH' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full text-[10px] font-bold border border-slate-200">
+                  Architecture
+                </span>
+              </div>
+
+              <h3 className="text-lg font-bold text-brand-navy mb-1">B.Arch</h3>
+              <p className="text-[11px] text-gray-500 leading-relaxed font-medium">
+                School of Architecture performance index
               </p>
             </div>
           </div>

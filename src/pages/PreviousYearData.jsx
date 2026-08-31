@@ -222,8 +222,8 @@ const PreviousYearData = () => {
                   onChange={(e) => setSelectedInstCode(e.target.value)}
                   className="w-full bg-brand-bg border border-gray-200 text-brand-text py-2 px-3 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-brand-blue cursor-pointer"
                 >
-                  <option value="FLABS">FLABS (14 Departments Available)</option>
                   <option value="ET">E&T (17 Departments Available)</option>
+                  <option value="FLABS">FLABS (14 Departments Available)</option>
                   <option value="MANAGEMENT">Management (MBA & BBA Available)</option>
                   <option value="BARCH">B.Arch (Architecture — Yet to receive data)</option>
                 </select>
