@@ -194,11 +194,11 @@ const HodDashboard = () => {
               onChange={(e) => setSelectedYear(e.target.value)}
               className="w-full bg-brand-navy text-white font-bold py-2 px-3 rounded-xl text-xs focus:outline-none cursor-pointer"
             >
-              <option value="2021-2022">2021-2022</option>
-              <option value="2022-2023">2022-2023</option>
-              <option value="2023-2024">2023-2024</option>
-              <option value="2024-2025">2024-2025</option>
               <option value="2025-2026">2025-2026</option>
+              <option value="2024-2025">2024-2025</option>
+              <option value="2023-2024">2023-2024</option>
+              <option value="2022-2023">2022-2023</option>
+              <option value="2021-2022">2021-2022</option>
             </select>
           </div>
         </div>

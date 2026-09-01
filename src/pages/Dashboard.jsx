@@ -273,7 +273,7 @@ const Dashboard = () => {
               onChange={(e) => setSelectedYear(e.target.value)}
               className="bg-brand-navy/90 text-white font-bold text-xs rounded-lg px-2 py-1 outline-none border border-white/20 cursor-pointer"
             >
-              {availableYears.map(yr => (
+              {[...availableYears].reverse().map(yr => (
                 <option key={yr} value={yr}>{yr}</option>
               ))}
             </select>

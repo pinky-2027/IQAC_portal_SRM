@@ -277,11 +277,11 @@ const PreviousYearData = () => {
               onChange={(e) => setSelectedYear(e.target.value)}
               className="w-full bg-brand-bg border border-gray-200 text-brand-text py-2 px-3 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-brand-blue cursor-pointer"
             >
-              <option value="2021-2022">2021-2022</option>
-              <option value="2022-2023">2022-2023</option>
-              <option value="2023-2024">2023-2024</option>
-              <option value="2024-2025">2024-2025</option>
               <option value="2025-2026">2025-2026</option>
+              <option value="2024-2025">2024-2025</option>
+              <option value="2023-2024">2023-2024</option>
+              <option value="2022-2023">2022-2023</option>
+              <option value="2021-2022">2021-2022</option>
             </select>
           </div>
         </div>
