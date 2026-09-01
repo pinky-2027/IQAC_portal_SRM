@@ -6,7 +6,7 @@ import {
   Tooltip as RechartsTooltip, ResponsiveContainer, Legend 
 } from 'recharts';
 import { apiService } from '../services/apiService';
-import { getLegacyKpiClientData } from '../services/dataService';
+import { getLegacyKpiClientData, formatVal, isPercentageIndicator, normalizePercentageValue } from '../services/dataService';
 
 const Reports = () => {
   const location = useLocation();
@@ -93,13 +93,16 @@ const Reports = () => {
 
   const prepareChartData = (rec) => {
     if (!rec) return [];
+    const isPct = isPercentageIndicator(rec.indicator);
+
     return availableYears.map(yr => {
       const val = rec.values ? rec.values[yr] : rec[yr];
       let numVal = 0;
-      if (typeof val === 'number') {
-        numVal = (rec.indicator.toLowerCase().includes('percentage') || rec.indicator.toLowerCase().includes('projects') || val < 1)
-          ? Number((val * 100).toFixed(1))
-          : val;
+      if (isPct) {
+        const norm = normalizePercentageValue(val);
+        numVal = norm !== null ? norm : 0;
+      } else if (typeof val === 'number') {
+        numVal = val;
       } else if (typeof val === 'string') {
         const parsed = parseFloat(val);
         numVal = isNaN(parsed) ? 0 : parsed;
@@ -279,9 +282,7 @@ const Reports = () => {
                         </td>
                         {availableYears.map(yr => {
                           const rawVal = row.values ? row.values[yr] : row[yr];
-                          const displayVal = (typeof rawVal === 'number' && (row.indicator.toLowerCase().includes('percentage') || row.indicator.toLowerCase().includes('projects') || rawVal < 1))
-                            ? `${(rawVal * 100).toFixed(1)}%`
-                            : (rawVal !== undefined && rawVal !== null ? rawVal.toLocaleString() : '-');
+                          const displayVal = formatVal(row.indicator, rawVal);
 
                           return (
                             <td key={yr} className="px-4 py-2 text-right text-brand-navy font-bold font-sans">

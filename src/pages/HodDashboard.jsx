@@ -3,7 +3,7 @@ import { Building2, Calendar, FileText, CheckCircle2, Clock, Eye, AlertCircle, S
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/apiService';
-import { getLegacyKpiClientData } from '../services/dataService';
+import { getLegacyKpiClientData, formatVal, isPercentageIndicator, normalizePercentageValue } from '../services/dataService';
 
 const HodDashboard = () => {
   const { user } = useAuth();
@@ -121,12 +121,8 @@ const HodDashboard = () => {
     }
   };
 
-  const formatVal = (indicator, rawVal) => {
-    if (rawVal === undefined || rawVal === null || rawVal === '') return 'N/A';
-    if (typeof rawVal === 'number' && (indicator.toLowerCase().includes('percentage') || indicator.toLowerCase().includes('projects') || rawVal < 1)) {
-      return `${(rawVal * 100).toFixed(1)}%`;
-    }
-    return typeof rawVal === 'number' ? rawVal.toLocaleString() : rawVal.toString();
+  const formatValLocal = (indicator, rawVal) => {
+    return formatVal(indicator, rawVal);
   };
 
   const getTopBorderAccent = (idx) => {
@@ -141,13 +137,16 @@ const HodDashboard = () => {
     const rec = kpiLegacyData.records.find(r => r.indicator === selectedTrendIndicator);
     if (!rec) return [];
 
+    const isPct = isPercentageIndicator(rec.indicator);
+
     return availableYears.map(yr => {
       const val = rec.values ? rec.values[yr] : rec[yr];
       let numVal = 0;
-      if (typeof val === 'number') {
-        numVal = (rec.indicator.toLowerCase().includes('percentage') || rec.indicator.toLowerCase().includes('projects') || val < 1)
-          ? Number((val * 100).toFixed(1))
-          : val;
+      if (isPct) {
+        const norm = normalizePercentageValue(val);
+        numVal = norm !== null ? norm : 0;
+      } else if (typeof val === 'number') {
+        numVal = val;
       } else if (typeof val === 'string') {
         const parsed = parseFloat(val);
         numVal = isNaN(parsed) ? 0 : parsed;
@@ -299,6 +298,7 @@ const HodDashboard = () => {
                     <RechartsTooltip
                       contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px', fontWeight: 'bold' }}
                       itemStyle={{ color: '#123B6D' }}
+                      formatter={(value) => [isPercentageIndicator(selectedTrendIndicator) ? `${value}%` : (typeof value === 'number' ? value.toLocaleString() : value), selectedTrendIndicator]}
                     />
                     <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                     <Line

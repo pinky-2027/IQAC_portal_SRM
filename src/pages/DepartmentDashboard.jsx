@@ -3,7 +3,7 @@ import {
   Building2, Calendar, Users, GraduationCap, Briefcase, 
   BookOpen, Award, Check, FileX, FileText, Microscope
 } from 'lucide-react';
-import { getDepartments, getAcademicYears, getKPIData } from '../services/dataService';
+import { getDepartments, getAcademicYears, getKPIData, formatVal } from '../services/dataService';
 
 const DepartmentDashboard = () => {
   const [selectedDept, setSelectedDept] = useState('flabs');
@@ -42,14 +42,7 @@ const DepartmentDashboard = () => {
   const currentDeptObj = departments.find(d => d.id === selectedDept) || departments[1];
 
   const formatKpiValue = (kpiName, rawVal) => {
-    if (rawVal === undefined || rawVal === null) return 'N/A';
-    if (typeof rawVal === 'number' && (kpiName.toLowerCase().includes('percentage') || rawVal < 1)) {
-      return `${(rawVal * 100).toFixed(1)}%`;
-    }
-    if (typeof rawVal === 'number') {
-      return rawVal.toLocaleString();
-    }
-    return rawVal;
+    return formatVal(kpiName, rawVal);
   };
 
   const getKpiCategory = (kpiName) => {

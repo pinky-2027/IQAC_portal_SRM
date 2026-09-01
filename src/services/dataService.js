@@ -20,6 +20,88 @@ export const getFlabsDepartments = () => {
 };
 
 /**
+ * Checks whether an indicator represents a percentage metric.
+ */
+export const isPercentageIndicator = (indicator = '') => {
+  if (!indicator) return false;
+  const lower = String(indicator).toLowerCase();
+  return (
+    lower.includes('percentage') ||
+    lower.includes('percent') ||
+    lower.includes('%') ||
+    lower.includes('mention in %')
+  );
+};
+
+/**
+ * Normalizes a raw percentage value to a 0–100 scale.
+ * Handles:
+ *  - null, undefined, '', 'NIL', 'NA', '-' -> returns null
+ *  - numbers/strings on 0-1 scale (e.g. 0.98, 0.99, 1.0) -> scaled to (0.98 * 100) = 98.0
+ *  - numbers/strings on 0-100 scale (e.g. 99.4, 98.3, 100) -> kept as 99.4
+ *  - ensures result is capped at 100% max (0 to 100)
+ */
+export const normalizePercentageValue = (rawVal) => {
+  if (
+    rawVal === undefined ||
+    rawVal === null ||
+    rawVal === '' ||
+    rawVal === 'NIL' ||
+    rawVal === 'NA' ||
+    rawVal === '-'
+  ) {
+    return null;
+  }
+
+  let num = typeof rawVal === 'number' ? rawVal : parseFloat(String(rawVal).replace('%', '').trim());
+  if (isNaN(num)) return null;
+
+  if (num > 0 && num <= 1) {
+    num = num * 100;
+  }
+
+  num = Math.min(100, Math.max(0, num));
+  return Number(num.toFixed(1));
+};
+
+/**
+ * Formats an indicator value for display.
+ * If percentage: formats normalized value as "98.6%" out of 100%.
+ * If count/other: formats with locale string (e.g. "2,567").
+ */
+export const formatVal = (indicator = '', rawVal) => {
+  if (
+    rawVal === undefined ||
+    rawVal === null ||
+    rawVal === '' ||
+    rawVal === 'NIL' ||
+    rawVal === 'NA' ||
+    rawVal === '-'
+  ) {
+    return 'NIL';
+  }
+
+  const isPct = isPercentageIndicator(indicator);
+
+  if (isPct) {
+    const norm = normalizePercentageValue(rawVal);
+    if (norm === null) return 'NIL';
+    return `${norm}%`;
+  }
+
+  if (typeof rawVal === 'number') {
+    return rawVal.toLocaleString();
+  }
+
+  const parsed = parseFloat(rawVal);
+  if (!isNaN(parsed) && String(parsed) === String(rawVal).trim()) {
+    return parsed.toLocaleString();
+  }
+
+  return String(rawVal);
+};
+
+/**
  * Fetch KPI Data for FLABS / Management / E&T / B.Arch
  */
 export const getKPIData = async (deptId = 'BCA', yearId = '2024-2025') => {
@@ -188,7 +270,7 @@ const findMatchingParam = (dParams, baseIndicator) => {
 };
 
 /**
- * Calculate total institution overview (Sum across all departments in an institution)
+ * Calculate total institution overview (Sum for counts, Mean/Average for percentages across all departments in an institution)
  */
 export const getInstitutionalOverviewData = (institution = 'ET', year = '2025-2026') => {
   const instUpper = (institution || '').toUpperCase();
@@ -247,12 +329,14 @@ export const getInstitutionalOverviewData = (institution = 'ET', year = '2025-20
       indicatorName = 'Total Students Admitted';
     }
 
+    const isPct = isPercentageIndicator(baseParam.indicator);
+
     const yearSums = {};
     const yearBreakdowns = {};
 
     availableYears.forEach(yr => {
       let sum = 0;
-      let count = 0;
+      let validCount = 0;
       const breakdown = [];
 
       deptKeys.forEach(dk => {
@@ -263,24 +347,36 @@ export const getInstitutionalOverviewData = (institution = 'ET', year = '2025-20
         const matchP = findMatchingParam(dParams, baseParam.indicator);
 
         if (matchP) {
-          const val = matchP.values ? matchP.values[yr] : matchP[yr];
-          let numVal = 0;
-          if (typeof val === 'number') {
-            numVal = val;
-          } else if (typeof val === 'string') {
-            const parsed = parseFloat(val);
-            numVal = isNaN(parsed) ? 0 : parsed;
+          const rawVal = matchP.values ? matchP.values[yr] : matchP[yr];
+          if (isPct) {
+            const normVal = normalizePercentageValue(rawVal);
+            if (normVal !== null) {
+              sum += normVal;
+              validCount++;
+              breakdown.push({ department: dk, value: normVal });
+            } else {
+              breakdown.push({ department: dk, value: 'NIL' });
+            }
+          } else {
+            let numVal = 0;
+            if (typeof rawVal === 'number') {
+              numVal = rawVal;
+            } else if (typeof rawVal === 'string') {
+              const parsed = parseFloat(rawVal);
+              numVal = isNaN(parsed) ? 0 : parsed;
+            }
+            sum += numVal;
+            if (numVal > 0) validCount++;
+            breakdown.push({ department: dk, value: numVal });
           }
-          sum += numVal;
-          if (numVal > 0) count++;
-          breakdown.push({ department: dk, value: numVal });
         } else {
-          breakdown.push({ department: dk, value: 0 });
+          breakdown.push({ department: dk, value: isPct ? 'NIL' : 0 });
         }
       });
 
-      if (baseParam.indicator.toLowerCase().includes('percentage')) {
-        const avg = count > 0 ? Number((sum / count).toFixed(1)) : 0;
+      if (isPct) {
+        // Calculate the mathematical mean / average of all valid department percentages
+        const avg = validCount > 0 ? Number((sum / validCount).toFixed(1)) : 0;
         yearSums[yr] = avg;
       } else {
         yearSums[yr] = Math.round(sum);
@@ -299,17 +395,22 @@ export const getInstitutionalOverviewData = (institution = 'ET', year = '2025-20
       const yearsObj = {};
       availableYears.forEach(yr => {
         if (matchP) {
-          const val = matchP.values ? matchP.values[yr] : matchP[yr];
-          let numVal = 0;
-          if (typeof val === 'number') {
-            numVal = val;
-          } else if (typeof val === 'string') {
-            const parsed = parseFloat(val);
-            numVal = isNaN(parsed) ? 0 : parsed;
+          const rawVal = matchP.values ? matchP.values[yr] : matchP[yr];
+          if (isPct) {
+            const normVal = normalizePercentageValue(rawVal);
+            yearsObj[yr] = normVal !== null ? normVal : 'NIL';
+          } else {
+            let numVal = 0;
+            if (typeof rawVal === 'number') {
+              numVal = rawVal;
+            } else if (typeof rawVal === 'string') {
+              const parsed = parseFloat(rawVal);
+              numVal = isNaN(parsed) ? 0 : parsed;
+            }
+            yearsObj[yr] = numVal;
           }
-          yearsObj[yr] = numVal;
         } else {
-          yearsObj[yr] = 0;
+          yearsObj[yr] = isPct ? 'NIL' : 0;
         }
       });
 
@@ -322,6 +423,7 @@ export const getInstitutionalOverviewData = (institution = 'ET', year = '2025-20
     return {
       indicator: indicatorName,
       originalIndicator: baseParam.indicator,
+      isPercentage: isPct,
       values: yearSums,
       breakdown: yearBreakdowns,
       departmentMatrix: departmentMatrix

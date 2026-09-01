@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/apiService';
-import { getLegacyKpiClientData, getInstitutionalOverviewData } from '../services/dataService';
+import { getLegacyKpiClientData, getInstitutionalOverviewData, formatVal, isPercentageIndicator, normalizePercentageValue } from '../services/dataService';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -176,14 +176,6 @@ const Dashboard = () => {
     navigate('/admin/dashboard', { state: { institution: selectedInstCode } });
   };
 
-  const formatVal = (indicator, rawVal) => {
-    if (rawVal === undefined || rawVal === null || rawVal === '') return 'N/A';
-    if (typeof rawVal === 'number' && (indicator.toLowerCase().includes('percentage') || indicator.toLowerCase().includes('projects') || rawVal < 1)) {
-      return `${(rawVal * 100).toFixed(1)}%`;
-    }
-    return typeof rawVal === 'number' ? rawVal.toLocaleString() : rawVal.toString();
-  };
-
   const getTopBorderAccent = (idx) => {
     const mod = idx % 3;
     if (mod === 0) return 'border-t-4 border-t-amber-400';
@@ -196,13 +188,16 @@ const Dashboard = () => {
     const rec = kpiLegacyData.records.find(r => r.indicator === selectedTrendIndicator);
     if (!rec) return [];
 
+    const isPct = isPercentageIndicator(rec.indicator);
+
     return availableYears.map(yr => {
       const val = rec.values ? rec.values[yr] : rec[yr];
       let numVal = 0;
-      if (typeof val === 'number') {
-        numVal = (rec.indicator.toLowerCase().includes('percentage') || rec.indicator.toLowerCase().includes('projects') || val < 1)
-          ? Number((val * 100).toFixed(1))
-          : val;
+      if (isPct) {
+        const norm = normalizePercentageValue(val);
+        numVal = norm !== null ? norm : 0;
+      } else if (typeof val === 'number') {
+        numVal = val;
       } else if (typeof val === 'string') {
         const parsed = parseFloat(val);
         numVal = isNaN(parsed) ? 0 : parsed;
@@ -216,10 +211,25 @@ const Dashboard = () => {
 
   const prepareDeptComparisonBarChartData = (record) => {
     if (!record || !record.departmentMatrix) return [];
-    return record.departmentMatrix.map(item => ({
-      department: item.department,
-      value: item.years[selectedYear] || 0
-    }));
+    const isPct = isPercentageIndicator(record.indicator);
+
+    return record.departmentMatrix.map(item => {
+      const rawVal = item.years[selectedYear];
+      let numVal = 0;
+      if (isPct) {
+        const norm = normalizePercentageValue(rawVal);
+        numVal = norm !== null ? norm : 0;
+      } else if (typeof rawVal === 'number') {
+        numVal = rawVal;
+      } else if (typeof rawVal === 'string') {
+        const parsed = parseFloat(rawVal);
+        numVal = isNaN(parsed) ? 0 : parsed;
+      }
+      return {
+        department: item.department,
+        value: numVal
+      };
+    });
   };
 
   const getInstitutionDisplayName = (code) => {
@@ -229,193 +239,216 @@ const Dashboard = () => {
     return 'FLABS (Faculty of Science & Humanities)';
   };
 
+  const isTrendPct = isPercentageIndicator(selectedTrendIndicator);
+  const isParamPct = isPercentageIndicator(selectedParamRecord?.indicator);
+
   return (
-    <div className="space-y-6 animate-fade-in font-sans pb-10">
+    <div className="space-y-6 animate-fade-in font-sans">
       
-      {/* TOP LANDING HEADER */}
-      <div className="bg-[#121E31] rounded-2xl p-6 sm:p-8 shadow-md text-white relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* PAGE HEADER */}
+      <div className="bg-gradient-to-r from-brand-navy via-blue-900 to-brand-blue rounded-2xl p-6 shadow-md text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <p className="text-[11px] font-bold text-amber-400 uppercase tracking-widest mb-1">
-            INSTITUTIONAL PERFORMANCE PORTAL
-          </p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-sans">
-            {getInstitutionDisplayName(selectedInstCode)} {viewLevel === 'dept_single' ? `— ${selectedDept} Department` : isOverviewRole ? (viewLevel === 'details' ? '— Department Details' : 'Overview') : 'Dashboard'}
-          </h1>
-          <p className="text-gray-300 text-xs sm:text-sm mt-1 font-medium">
+          <div className="flex items-center space-x-2 text-brand-gold font-bold text-xs uppercase tracking-widest mb-1">
+            <Sparkles className="w-4 h-4" />
+            <span>Internal Quality Assurance Cell (IQAC) &bull; Executive Portal</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight">
             {viewLevel === 'dept_single' 
-              ? `Department performance indicators and longitudinal benchmark data for ${selectedDept}.`
-              : isOverviewRole 
-                ? (viewLevel === 'details' 
-                    ? `Department-wise parameter breakdown for ${selectedParamRecord?.indicator || 'selected metric'} (${selectedYear}).`
-                    : `Aggregated institutional overview across all departments in ${getInstitutionDisplayName(selectedInstCode)}.`)
-                : `View performance metrics across ${getInstitutionDisplayName(selectedInstCode)} departments.`
-            }
+              ? `${selectedDept} Department Dashboard`
+              : `${getInstitutionDisplayName(selectedInstCode)} Overview Dashboard`}
+          </h1>
+          <p className="text-blue-100 text-xs mt-1 max-w-2xl font-medium">
+            {viewLevel === 'dept_single'
+              ? `Department performance indicators, multi-year trends, and historical metrics for ${selectedDept}.`
+              : `Aggregated multi-year institutional quality indicators and department-level analysis.`}
           </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/20 flex items-center space-x-2">
+            <Calendar className="w-4 h-4 text-brand-gold" />
+            <span className="text-xs font-bold">Academic Year:</span>
+            <select 
+              value={selectedYear} 
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="bg-brand-navy/90 text-white font-bold text-xs rounded-lg px-2 py-1 outline-none border border-white/20 cursor-pointer"
+            >
+              {availableYears.map(yr => (
+                <option key={yr} value={yr}>{yr}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
       {/* LEVEL 1: 4 INSTITUTION SELECTION CARDS (ALWAYS AVAILABLE FOR CHAIRMAN ONLY) */}
       {isChairman && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
-          {/* CARD 1: E&T */}
+          {/* 1. E&T */}
           <div 
             onClick={() => handleSelectInstitution('ET')}
-            className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${
-              selectedInstCode === 'ET' || selectedInstCode === 'E&T' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
+            className={`p-5 rounded-2xl border transition-all cursor-pointer shadow-2xs flex flex-col justify-between space-y-3 ${
+              selectedInstCode === 'ET'
+                ? 'bg-gradient-to-br from-brand-navy to-brand-blue text-white border-brand-blue ring-2 ring-brand-gold shadow-md'
+                : 'bg-white text-gray-800 border-gray-200 hover:border-brand-blue hover:shadow-md'
             }`}
           >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                  <Zap className="w-5 h-5" />
-                </div>
-                <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-[10px] font-bold border border-blue-200">
-                  17 Depts
-                </span>
+            <div className="flex items-center justify-between">
+              <div className={`p-2.5 rounded-xl ${selectedInstCode === 'ET' ? 'bg-white/15 text-brand-gold' : 'bg-amber-50 text-amber-600'}`}>
+                <Layers className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-brand-navy mb-1">E&amp;T</h3>
-              <p className="text-[11px] text-gray-500 leading-relaxed font-medium">
-                Engineering &amp; Technology institutional overview
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedInstCode === 'ET' ? 'bg-brand-gold text-brand-navy' : 'bg-gray-100 text-gray-600'}`}>
+                17 Depts
+              </span>
+            </div>
+            <div>
+              <h3 className="font-bold text-sm font-serif">E&amp;T (Engineering)</h3>
+              <p className={`text-[11px] mt-0.5 font-medium ${selectedInstCode === 'ET' ? 'text-blue-100' : 'text-gray-500'}`}>
+                Faculty of Engineering &amp; Technology
               </p>
+            </div>
+            <div className="flex items-center justify-between text-[11px] font-bold pt-2 border-t border-current/10">
+              <span>View Institution</span>
+              <ChevronRight className="w-4 h-4" />
             </div>
           </div>
 
-          {/* CARD 2: FLABS */}
+          {/* 2. FLABS */}
           <div 
             onClick={() => handleSelectInstitution('FLABS')}
-            className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${
-              selectedInstCode === 'FLABS' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
+            className={`p-5 rounded-2xl border transition-all cursor-pointer shadow-2xs flex flex-col justify-between space-y-3 ${
+              selectedInstCode === 'FLABS'
+                ? 'bg-gradient-to-br from-brand-navy to-brand-blue text-white border-brand-blue ring-2 ring-brand-gold shadow-md'
+                : 'bg-white text-gray-800 border-gray-200 hover:border-brand-blue hover:shadow-md'
             }`}
           >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                  <Microscope className="w-5 h-5" />
-                </div>
-                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-bold border border-emerald-200">
-                  14 Depts
-                </span>
+            <div className="flex items-center justify-between">
+              <div className={`p-2.5 rounded-xl ${selectedInstCode === 'FLABS' ? 'bg-white/15 text-brand-gold' : 'bg-blue-50 text-brand-blue'}`}>
+                <Building2 className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-brand-navy mb-1">FLABS</h3>
-              <p className="text-[11px] text-gray-500 leading-relaxed font-medium">
-                Faculty of Science &amp; Humanities institutional overview
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedInstCode === 'FLABS' ? 'bg-brand-gold text-brand-navy' : 'bg-gray-100 text-gray-600'}`}>
+                14 Depts
+              </span>
+            </div>
+            <div>
+              <h3 className="font-bold text-sm font-serif">FLABS (Science &amp; Hum.)</h3>
+              <p className={`text-[11px] mt-0.5 font-medium ${selectedInstCode === 'FLABS' ? 'text-blue-100' : 'text-gray-500'}`}>
+                Faculty of Science &amp; Humanities
               </p>
+            </div>
+            <div className="flex items-center justify-between text-[11px] font-bold pt-2 border-t border-current/10">
+              <span>View Institution</span>
+              <ChevronRight className="w-4 h-4" />
             </div>
           </div>
 
-          {/* CARD 3: Management */}
+          {/* 3. Management */}
           <div 
             onClick={() => handleSelectInstitution('MANAGEMENT')}
-            className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${
-              selectedInstCode === 'MANAGEMENT' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
+            className={`p-5 rounded-2xl border transition-all cursor-pointer shadow-2xs flex flex-col justify-between space-y-3 ${
+              selectedInstCode === 'MANAGEMENT'
+                ? 'bg-gradient-to-br from-brand-navy to-brand-blue text-white border-brand-blue ring-2 ring-brand-gold shadow-md'
+                : 'bg-white text-gray-800 border-gray-200 hover:border-brand-blue hover:shadow-md'
             }`}
           >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                  <BarChart2 className="w-5 h-5" />
-                </div>
-                <span className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full text-[10px] font-bold border border-purple-200">
-                  MBA &amp; BBA
-                </span>
+            <div className="flex items-center justify-between">
+              <div className={`p-2.5 rounded-xl ${selectedInstCode === 'MANAGEMENT' ? 'bg-white/15 text-brand-gold' : 'bg-emerald-50 text-emerald-600'}`}>
+                <BookOpen className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-brand-navy mb-1">Management</h3>
-              <p className="text-[11px] text-gray-500 leading-relaxed font-medium">
-                Faculty of Management datasets
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedInstCode === 'MANAGEMENT' ? 'bg-brand-gold text-brand-navy' : 'bg-gray-100 text-gray-600'}`}>
+                2 Programs
+              </span>
+            </div>
+            <div>
+              <h3 className="font-bold text-sm font-serif">Management (FOM)</h3>
+              <p className={`text-[11px] mt-0.5 font-medium ${selectedInstCode === 'MANAGEMENT' ? 'text-blue-100' : 'text-gray-500'}`}>
+                MBA &amp; BBA Programs
               </p>
+            </div>
+            <div className="flex items-center justify-between text-[11px] font-bold pt-2 border-t border-current/10">
+              <span>View Institution</span>
+              <ChevronRight className="w-4 h-4" />
             </div>
           </div>
 
-          {/* CARD 4: B.Arch */}
+          {/* 4. B.Arch */}
           <div 
             onClick={() => handleSelectInstitution('BARCH')}
-            className={`bg-white rounded-2xl p-5 shadow-2xs border transition-all cursor-pointer flex flex-col justify-between hover:shadow-md ${
-              selectedInstCode === 'BARCH' ? 'border-brand-blue ring-2 ring-brand-blue/20 bg-blue-50/20' : 'border-gray-200/90'
+            className={`p-5 rounded-2xl border transition-all cursor-pointer shadow-2xs flex flex-col justify-between space-y-3 ${
+              selectedInstCode === 'BARCH'
+                ? 'bg-gradient-to-br from-brand-navy to-brand-blue text-white border-brand-blue ring-2 ring-brand-gold shadow-md'
+                : 'bg-white text-gray-800 border-gray-200 hover:border-brand-blue hover:shadow-md'
             }`}
           >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full text-[10px] font-bold border border-slate-200">
-                  Architecture
-                </span>
+            <div className="flex items-center justify-between">
+              <div className={`p-2.5 rounded-xl ${selectedInstCode === 'BARCH' ? 'bg-white/15 text-brand-gold' : 'bg-purple-50 text-purple-600'}`}>
+                <Building2 className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-brand-navy mb-1">B.Arch</h3>
-              <p className="text-[11px] text-gray-500 leading-relaxed font-medium">
-                School of Architecture performance index
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedInstCode === 'BARCH' ? 'bg-brand-gold text-brand-navy' : 'bg-amber-100 text-amber-800'}`}>
+                Pending Data
+              </span>
+            </div>
+            <div>
+              <h3 className="font-bold text-sm font-serif">B.Arch (Architecture)</h3>
+              <p className={`text-[11px] mt-0.5 font-medium ${selectedInstCode === 'BARCH' ? 'text-blue-100' : 'text-gray-500'}`}>
+                School of Environment &amp; Arch.
               </p>
+            </div>
+            <div className="flex items-center justify-between text-[11px] font-bold pt-2 border-t border-current/10">
+              <span>View Institution</span>
+              <ChevronRight className="w-4 h-4" />
             </div>
           </div>
 
         </div>
       )}
 
-      {/* DYNAMIC MAIN CONTENT SHELL */}
-      <div ref={detailsRef} className="space-y-6 animate-fade-in-up pt-1">
+      {/* DASHBOARD BODY / LEVEL 2 / LEVEL 3 VIEWS */}
+      <div ref={detailsRef} className="space-y-6">
         
-        {/* GLOBAL YEAR FILTER BAR & SCOPE INDICATOR */}
-        <div className="bg-white rounded-2xl shadow-2xs border border-gray-200/80 p-5">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            
-            <div className="flex items-center space-x-3">
-              {(viewLevel === 'details' || viewLevel === 'dept_single') && (
-                <button
-                  onClick={handleBackToOverview}
-                  className="px-3 py-1.5 bg-brand-navy hover:bg-brand-blue text-white rounded-xl text-xs font-bold transition-all flex items-center shadow-2xs cursor-pointer"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
-                  Back to {selectedInstCode === 'ET' ? 'E&T' : selectedInstCode} Overview
-                </button>
-              )}
-              <div>
-                <span className="text-[10px] font-bold text-brand-blue uppercase tracking-wider block">
-                  {viewLevel === 'dept_single' ? `Department Scope &bull; ${selectedDept}` : isOverviewRole ? (viewLevel === 'details' ? 'Level 3 &bull; Parameter Details' : 'Level 2 &bull; Institutional Overview') : 'Assigned Institution'}
-                </span>
-                <h3 className="text-base font-bold text-brand-navy flex items-center">
-                  <Building2 className="w-4 h-4 mr-2 text-brand-gold" />
-                  {getInstitutionDisplayName(selectedInstCode)} {viewLevel === 'dept_single' ? `(${selectedDept})` : ''}
-                </h3>
-              </div>
-            </div>
-
-            {/* GLOBAL YEAR FILTER (CONTROLS ENTIRE INSTITUTIONAL OVERVIEW DATA) */}
-            <div className="flex items-center space-x-3 w-full md:w-auto">
-              <label className="text-xs font-bold text-brand-navy whitespace-nowrap flex items-center">
-                <Calendar className="w-3.5 h-3.5 mr-1.5 text-brand-blue" />
-                Select Academic Year:
-              </label>
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="bg-brand-navy text-white font-bold py-2 px-4 rounded-xl text-xs focus:outline-none cursor-pointer border border-brand-blue/30 shadow-2xs min-w-[140px]"
-              >
-                <option value="2021-2022">2021-2022</option>
-                <option value="2022-2023">2022-2023</option>
-                <option value="2023-2024">2023-2024</option>
-                <option value="2024-2025">2024-2025</option>
-                <option value="2025-2026">2025-2026</option>
-              </select>
-            </div>
-
-          </div>
-        </div>
-
-        {/* LOADING STATE */}
         {loading ? (
-          <div className="bg-white rounded-xl p-12 text-center text-brand-muted border border-gray-200 shadow-2xs">
-            <div className="animate-spin w-8 h-8 border-3 border-brand-blue border-t-transparent rounded-full mx-auto mb-3"></div>
-            <p className="font-bold text-xs">Loading Overview Metrics...</p>
+          <div className="bg-white rounded-2xl p-12 shadow-2xs border border-gray-200 flex flex-col items-center justify-center space-y-3">
+            <div className="animate-spin w-8 h-8 border-4 border-brand-blue border-t-transparent rounded-full"></div>
+            <span className="text-xs font-bold text-brand-navy">Loading KPI Records...</span>
           </div>
         ) : kpiLegacyData && kpiLegacyData.hasData ? (
-          
-          /* VIEW LEVEL 2: INSTITUTIONAL OVERVIEW / SINGLE DEPT CARDS + TREND GRAPH */
           viewLevel === 'overview' || viewLevel === 'dept_single' ? (
-            <div className="space-y-6">
+            /* VIEW LEVEL 2: INSTITUTION OVERVIEW (OR SINGLE DEPT) */
+            <div className="space-y-6 animate-fade-in">
               
-              {/* INSTITUTIONAL / DEPARTMENT PARAMETER CARDS */}
+              {/* INSTITUTION OVERVIEW HEADER BANNER */}
+              <div className="bg-white rounded-2xl p-5 shadow-2xs border border-gray-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                      {viewLevel === 'dept_single' ? 'Single Department View' : 'Institutional Level 2 Overview'}
+                    </span>
+                    <span className="text-xs font-bold text-gray-500">Selected Year: {selectedYear}</span>
+                  </div>
+                  <h2 className="text-xl font-bold text-brand-navy font-serif">
+                    {viewLevel === 'dept_single' 
+                      ? `${selectedDept} Department Quality Metrics`
+                      : `${getInstitutionDisplayName(selectedInstCode)} Overview`}
+                  </h2>
+                  <p className="text-xs text-gray-500 font-medium mt-0.5">
+                    {viewLevel === 'dept_single'
+                      ? `Displaying specific indicators for ${selectedDept}.`
+                      : `Displaying mathematical sum for counts and average (mean) for percentage metrics across all departments in ${getInstitutionDisplayName(selectedInstCode)}.`}
+                  </p>
+                </div>
+
+                {viewLevel === 'overview' && (
+                  <div className="text-right flex-shrink-0 bg-blue-50/70 p-3 rounded-xl border border-blue-100">
+                    <span className="text-[10px] text-gray-500 font-bold uppercase block">Total Departments</span>
+                    <span className="text-base font-extrabold text-brand-blue font-mono">
+                      {kpiLegacyData.available_departments ? kpiLegacyData.available_departments.length : '—'}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* DEPARTMENT PARAMETER CARDS */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {kpiLegacyData.records.map((rec, idx) => {
                   if (rec.section) {
@@ -431,6 +464,11 @@ const Dashboard = () => {
                   const rawVal = rec.values ? rec.values[selectedYear] : rec[selectedYear];
                   const formattedVal = formatVal(indicator, rawVal);
                   const topAccent = getTopBorderAccent(idx);
+                  const isPct = isPercentageIndicator(indicator);
+
+                  const labelText = viewLevel === 'dept_single'
+                    ? `${selectedDept} ${isPct ? 'Value' : 'Total'}`
+                    : `Institutional ${isPct ? 'Average (Mean)' : 'Total Sum'}`;
 
                   return (
                     <div 
@@ -447,7 +485,7 @@ const Dashboard = () => {
                       </div>
 
                       <div className="pt-2.5 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400 font-medium">
-                        <span>{selectedYear} {viewLevel === 'dept_single' ? `${selectedDept} Total` : 'Institutional Total'}</span>
+                        <span>{selectedYear} &bull; {labelText}</span>
                         {viewLevel === 'overview' && (
                           <button
                             onClick={() => handleOpenParameterDetails(rec)}
@@ -505,6 +543,7 @@ const Dashboard = () => {
                         <RechartsTooltip
                           contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px', fontWeight: 'bold' }}
                           itemStyle={{ color: '#123B6D' }}
+                          formatter={(value) => [isTrendPct ? `${value}%` : (typeof value === 'number' ? value.toLocaleString() : value), selectedTrendIndicator]}
                         />
                         <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                         <Line
@@ -604,7 +643,7 @@ const Dashboard = () => {
                     <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
                       <tr>
                         <td colSpan="2" className="px-4 py-3 text-brand-navy uppercase text-[10px]">
-                          Institutional Total Sum / Aggregate
+                          {isParamPct ? 'Institutional Average (Mean)' : 'Institutional Total Sum / Aggregate'}
                         </td>
                         <td className="px-4 py-3 text-right font-extrabold text-brand-navy">
                           {formatVal(selectedParamRecord?.indicator, selectedParamRecord?.values['2021-2022'])}
@@ -645,6 +684,7 @@ const Dashboard = () => {
                       <RechartsTooltip
                         contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px', fontWeight: 'bold' }}
                         itemStyle={{ color: '#123B6D' }}
+                        formatter={(value) => [isParamPct ? `${value}%` : (typeof value === 'number' ? value.toLocaleString() : value), selectedParamRecord?.indicator]}
                       />
                       <Bar dataKey="value" name={selectedParamRecord?.indicator} fill="#1E5AA8" radius={[4, 4, 0, 0]} />
                     </BarChart>

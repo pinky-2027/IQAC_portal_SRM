@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Building2, Calendar, FileText, Check, Award, GraduationCap, Users, Microscope, FileX, Lock, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/apiService';
-import { getLegacyKpiClientData } from '../services/dataService';
+import { getLegacyKpiClientData, formatVal } from '../services/dataService';
 
 const mapDeptToCode = (deptStr) => {
   if (!deptStr) return 'BCA';
@@ -115,12 +115,8 @@ const PreviousYearData = () => {
     }
   };
 
-  const formatVal = (indicator, rawVal) => {
-    if (rawVal === undefined || rawVal === null || rawVal === '') return 'N/A';
-    if (typeof rawVal === 'number' && (indicator.toLowerCase().includes('percentage') || indicator.toLowerCase().includes('projects') || rawVal < 1)) {
-      return `${(rawVal * 100).toFixed(1)}%`;
-    }
-    return typeof rawVal === 'number' ? rawVal.toLocaleString() : rawVal.toString();
+  const formatValLocal = (indicator, rawVal) => {
+    return formatVal(indicator, rawVal);
   };
 
   const getKpiBadge = (indicator) => {
