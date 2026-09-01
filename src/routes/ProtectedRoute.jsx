@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export const ProtectedRoute = ({ allowedRoles = [] }) => {
@@ -30,10 +30,11 @@ export const ProtectedRoute = ({ allowedRoles = [] }) => {
 
 export const RootRedirect = () => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) return null;
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to={`/login${location.search}`} replace />;
   if (['ADMIN', 'COLLEGE_DEAN', 'CHAIRMAN'].includes(user.role)) return <Navigate to="/admin/dashboard" replace />;
   if (user.role === 'HOD') return <Navigate to="/hod/dashboard" replace />;
   if (user.role === 'FACULTY') return <Navigate to="/faculty/dashboard" replace />;
