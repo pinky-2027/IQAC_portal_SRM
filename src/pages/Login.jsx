@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, UserCheck, ShieldCheck, Award, FileText, GraduationCap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { DEMO_USERS } from '../config/authUsers';
@@ -17,7 +17,35 @@ const Login = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, setUserSession } = useAuth();
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('role')?.toUpperCase() === 'CHAIRMAN') {
+      const chairmanUser = DEMO_USERS.find(u => u.role === 'chairman' && (u.id === 'user_chairman' || u.employeeId === 'CHAIRMAN001'));
+      if (chairmanUser) {
+        const userPayload = {
+          id: chairmanUser.id,
+          username: chairmanUser.employeeId || chairmanUser.id,
+          full_name: chairmanUser.name,
+          role: 'CHAIRMAN',
+          department_name: chairmanUser.department || chairmanUser.group || 'SRM IST',
+          employee_id: chairmanUser.employeeId,
+          group: chairmanUser.group
+        };
+        // The issue is likely a race condition or the router intercepting. 
+        // Force the local storage immediately just in case context takes a tick.
+        localStorage.setItem('iqac_token', 'demo_token_' + chairmanUser.id);
+        localStorage.setItem('iqac_user', JSON.stringify(userPayload));
+        
+        setUserSession(userPayload, 'demo_token_' + chairmanUser.id);
+        
+        // Use replace to prevent back button weirdness
+        navigate('/admin/dashboard', { replace: true });
+      }
+    }
+  }, [location.search, navigate, setUserSession]);
 
   const ROLE_CONFIGS = [
     { key: 'chairman', label: 'Chairman', icon: ShieldCheck, requiresGroup: false },
