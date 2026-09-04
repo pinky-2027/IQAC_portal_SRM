@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { GraduationCap, Calendar, CheckCircle2, Clock, ArrowRight, FileCheck, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';

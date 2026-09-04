@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 import { useLocation } from 'react-router-dom';
 import { FileBarChart, TrendingUp, Table, Filter, Building2, Check, BarChart2, Calendar, FileX, Clock } from 'lucide-react';
 import { 

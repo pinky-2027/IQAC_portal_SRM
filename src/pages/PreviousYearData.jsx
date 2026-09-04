@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Calendar, FileText, Check, Award, GraduationCap, Users, Microscope, FileX, Lock, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';

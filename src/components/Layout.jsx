@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supabase } from '../supabaseClient';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, FileBarChart, Settings, LogOut, FileCheck, Calendar, ChevronDown, ChevronRight, Layers, Building2, Microscope, Zap, BarChart2 } from 'lucide-react';
 import Logo from './Logo';

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { supabase } from '../supabaseClient';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Building2, FileText, Check, Award, GraduationCap, Users, Microscope, FileX, BarChart2, ArrowRight, ChevronRight, Layers, Sparkles, Zap, BookOpen, TrendingUp, Table, Calendar, ArrowLeft, Eye } from 'lucide-react';
 import { 

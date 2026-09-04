@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 import { Building2, Calendar, FileText, CheckCircle2, Clock, Eye, AlertCircle, ShieldAlert, X, ExternalLink, FileCheck, TrendingUp, BarChart2, FileX, Award, GraduationCap, Users, Microscope } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useAuth } from '../context/AuthContext';

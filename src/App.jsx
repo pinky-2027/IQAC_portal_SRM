@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { supabase } from './supabaseClient';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute, RootRedirect } from './routes/ProtectedRoute';
 import Login from './pages/Login';

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   CheckCircle2, ChevronRight, ChevronLeft, Save, ArrowRight, 

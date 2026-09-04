@@ -1,3 +1,4 @@
+import { supabase } from '../supabaseClient';
 import { FLABS_DEPARTMENT_DATA } from '../data/iqacData';
 import { MGMT_DEPARTMENT_DATA } from '../data/mgmtData';
 import { ET_DEPARTMENT_DATA } from '../data/etData';

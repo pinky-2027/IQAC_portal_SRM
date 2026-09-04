@@ -1,4 +1,5 @@
 import React from 'react';
+import { supabase } from '../supabaseClient';
 
 const Logo = ({ className = "h-8 w-auto", showText = false }) => {
   return (
