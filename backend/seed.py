@@ -1,8 +1,9 @@
 import json
-from app.database import SessionLocal
+from app.database import SessionLocal, engine, Base
 from app.models.user import User
 
 def seed_database():
+    Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
         with open("seed_data.json", "r") as file:
