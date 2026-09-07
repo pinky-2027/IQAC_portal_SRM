@@ -9,6 +9,7 @@ import HodDashboard from './pages/HodDashboard';
 import FacultyDashboard from './pages/FacultyDashboard';
 import FacultyTemplates from './pages/FacultyTemplates';
 import Reports from './pages/Reports';
+import FacultySubmissionsView from './pages/FacultySubmissionsView';
 import Layout from './components/Layout';
 
 function App() {
@@ -44,6 +45,11 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'COLLEGE_DEAN', 'CHAIRMAN', 'HOD']} />}>
               <Route path="admin/reports" element={<Reports />} />
               <Route path="reports" element={<Reports />} />
+            </Route>
+
+            {/* FACULTY SUBMISSIONS VIEW */}
+            <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'COLLEGE_DEAN', 'CHAIRMAN', 'IQAC_COORDINATOR', 'DEAN', 'HOD']} />}>
+              <Route path="faculty-submissions" element={<FacultySubmissionsView />} />
             </Route>
 
             {/* SETTINGS PLACEHOLDER */}

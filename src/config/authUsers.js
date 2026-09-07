@@ -4869,6 +4869,53 @@ export const DEMO_USERS = [
     "college": "SRM Institute of Science & Technology",
     "group": "FLABS",
     "department": "Tamil",
+  },
+  {
+    "id": "fac_ent_01",
+    "name": "Dr. Rajesh Kumar",
+    "employeeId": "FAC_ENT_001",
+    "password": "12345678",
+    "role": "faculty",
+    "campus": "SRM Ramapuram",
+    "college": "SRM Institute of Science & Technology",
+    "group": "E&T",
+    "department": "CSE",
+    "scope": "SELF_ONLY"
+  },
+  {
+    "id": "fac_mgmt_01",
+    "name": "Prof. Kavitha Shankar",
+    "employeeId": "FAC_MGMT_001",
+    "password": "12345678",
+    "role": "faculty",
+    "campus": "SRM Ramapuram",
+    "college": "SRM Institute of Science & Technology",
+    "group": "Management",
+    "department": "MBA",
+    "scope": "SELF_ONLY"
+  },
+  {
+    "id": "fac_flabs_bca",
+    "name": "Dr. Prakash Raj",
+    "employeeId": "FAC_FLABS_BCA",
+    "password": "12345678",
+    "role": "faculty",
+    "campus": "SRM Ramapuram",
+    "college": "SRM Institute of Science & Technology",
+    "group": "FLABS",
+    "department": "BCA",
+    "scope": "SELF_ONLY"
+  },
+  {
+    "id": "fac_flabs_mca",
+    "name": "Prof. Meena Kumari",
+    "employeeId": "FAC_FLABS_MCA",
+    "password": "12345678",
+    "role": "faculty",
+    "campus": "SRM Ramapuram",
+    "college": "SRM Institute of Science & Technology",
+    "group": "FLABS",
+    "department": "MCA",
     "scope": "SELF_ONLY"
   }
 ];

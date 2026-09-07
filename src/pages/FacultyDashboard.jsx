@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Calendar, CheckCircle2, Clock, ArrowRight, FileCheck, ShieldCheck } from 'lucide-react';
+import { GraduationCap, Calendar, CheckCircle2, Clock, ArrowRight, FileCheck, ShieldCheck, Lock, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/apiService';
+import { getFacultySubmissionStatus } from '../data/mockFacultySubmissions';
 
 const FacultyDashboard = () => {
   const navigate = useNavigate();
@@ -12,6 +13,8 @@ const FacultyDashboard = () => {
   const [selectedYear, setSelectedYear] = useState('5'); // Default 2025-26
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const facultyStatus = getFacultySubmissionStatus(user);
 
   useEffect(() => {
     loadFacultyProgress();
@@ -46,9 +49,9 @@ const FacultyDashboard = () => {
             <GraduationCap className="w-4 h-4" />
             <span>Faculty Template Submission Portal</span>
           </div>
-          <h2 className="text-xl font-bold">Welcome, {user?.full_name || 'Faculty Member'}</h2>
+          <h2 className="text-xl font-bold">Welcome, {user?.full_name || user?.name || 'Faculty Member'}</h2>
           <p className="text-blue-100 text-xs mt-0.5">
-            Faculty ID: <span className="font-mono text-white bg-white/20 px-2 py-0.5 rounded">{user?.username}</span> | Institution: <span className="font-bold text-white">{user?.department_name || 'FLABS'}</span>
+            Faculty ID: <span className="font-mono text-white bg-white/20 px-2 py-0.5 rounded">{user?.username || 'FACULTY'}</span> | Institution: <span className="font-bold text-white">{user?.department_name || user?.group || 'FLABS'}</span>
           </p>
         </div>
 
@@ -68,6 +71,63 @@ const FacultyDashboard = () => {
         </div>
       </div>
 
+      {/* 48-HOUR EDIT WINDOW STATUS CARD */}
+      <div className={`p-4 rounded-xl border text-xs font-semibold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs ${
+        facultyStatus.isLocked
+          ? 'bg-red-50 text-red-900 border-red-200'
+          : facultyStatus.isSubmitted
+          ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+          : 'bg-blue-50 text-brand-navy border-blue-200'
+      }`}>
+        <div className="flex items-center space-x-3">
+          {facultyStatus.isLocked ? (
+            <div className="w-9 h-9 bg-red-100 rounded-lg flex items-center justify-center text-red-600 flex-shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+          ) : (
+            <div className="w-9 h-9 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600 flex-shrink-0">
+              <FileCheck className="w-5 h-5" />
+            </div>
+          )}
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="font-bold text-sm">
+                {facultyStatus.isLocked
+                  ? '🔒 Edit Window Expired (Locked)'
+                  : facultyStatus.isSubmitted
+                  ? '✓ Submission Active — Edit Window Enabled'
+                  : '📝 Data Submission Open'}
+              </span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                facultyStatus.isLocked ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'
+              }`}>
+                {facultyStatus.isLocked ? 'Disabled' : 'Editable'}
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-600 mt-0.5">
+              {facultyStatus.isLocked
+                ? 'Your 48-hour edit window has expired. Submissions are now locked for institutional reporting.'
+                : facultyStatus.isSubmitted
+                ? `You have ${Math.floor(facultyStatus.hoursLeft)}h ${Math.floor((facultyStatus.hoursLeft % 1) * 60)}m remaining to click "Edit Details" and modify your submission.`
+                : 'Complete all 7 template steps to finalize your IQAC submission.'}
+            </p>
+          </div>
+        </div>
+
+        <button
+          disabled={facultyStatus.isLocked}
+          onClick={() => navigate('/faculty/templates/1')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center space-x-2 flex-shrink-0 ${
+            facultyStatus.isLocked
+              ? 'bg-gray-200 text-gray-400 border border-gray-300 cursor-not-allowed'
+              : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
+          }`}
+        >
+          {facultyStatus.isLocked ? <Lock className="w-4 h-4" /> : <FileCheck className="w-4 h-4" />}
+          <span>{facultyStatus.isLocked ? 'Edit Window Closed' : 'Edit Details'}</span>
+        </button>
+      </div>
+
       {/* OVERALL SUBMISSION PROGRESS CARD */}
       <div className="bg-white rounded-xl shadow-2xs border border-gray-200/80 p-5 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex-1 w-full">
@@ -84,12 +144,17 @@ const FacultyDashboard = () => {
         </div>
 
         <button
+          disabled={facultyStatus.isLocked}
           onClick={() => navigate('/faculty/templates/1')}
-          className="px-5 py-2.5 bg-brand-navy hover:bg-brand-blue text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center space-x-2 cursor-pointer flex-shrink-0"
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition-all flex items-center space-x-2 flex-shrink-0 ${
+            facultyStatus.isLocked
+              ? 'bg-gray-200 text-gray-400 border border-gray-300 cursor-not-allowed'
+              : 'bg-brand-navy hover:bg-brand-blue text-white cursor-pointer'
+          }`}
         >
-          <FileCheck className="w-4 h-4 text-brand-gold" />
-          <span>{completedStepsCount === 0 ? 'Start Data Submission' : 'Continue Workflow'}</span>
-          <ArrowRight className="w-4 h-4" />
+          {facultyStatus.isLocked ? <Lock className="w-4 h-4" /> : <FileCheck className="w-4 h-4 text-brand-gold" />}
+          <span>{facultyStatus.isLocked ? 'Submission Locked' : completedStepsCount === 0 ? 'Start Data Submission' : 'Continue Workflow / Edit'}</span>
+          {!facultyStatus.isLocked && <ArrowRight className="w-4 h-4" />}
         </button>
       </div>
 
@@ -136,14 +201,17 @@ const FacultyDashboard = () => {
                   {step.updated_at ? `Saved ${new Date(step.updated_at).toLocaleDateString()}` : 'Not saved yet'}
                 </span>
                 <button
+                  disabled={facultyStatus.isLocked}
                   onClick={() => navigate(`/faculty/templates/${step.step_number}`)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    step.is_completed 
-                      ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200' 
-                      : 'bg-brand-navy hover:bg-brand-blue text-white shadow-xs'
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    facultyStatus.isLocked
+                      ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                      : step.is_completed 
+                      ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 cursor-pointer' 
+                      : 'bg-brand-navy hover:bg-brand-blue text-white shadow-xs cursor-pointer'
                   }`}
                 >
-                  {step.is_completed ? 'Edit Step' : 'Fill Data'}
+                  {facultyStatus.isLocked ? 'Locked' : step.is_completed ? 'Edit Step' : 'Fill Data'}
                 </button>
               </div>
             </div>

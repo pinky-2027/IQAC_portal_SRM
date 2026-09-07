@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FileBarChart, Settings, LogOut, FileCheck, Calendar, ChevronDown, ChevronRight, Layers, Building2, Microscope, Zap, BarChart2 } from 'lucide-react';
+import { LayoutDashboard, FileBarChart, Settings, LogOut, FileCheck, Calendar, ChevronDown, ChevronRight, Layers, Building2, Microscope, Zap, BarChart2, Users } from 'lucide-react';
 import Logo from './Logo';
 import { useAuth } from '../context/AuthContext';
+import { getFacultySubmissionStatus } from '../data/mockFacultySubmissions';
 
 const Layout = () => {
   const location = useLocation();
@@ -13,6 +14,8 @@ const Layout = () => {
   const roleUpper = (user?.role || '').toUpperCase();
   const isChairman = roleUpper === 'CHAIRMAN';
   const isHod = roleUpper === 'HOD';
+  const isFaculty = roleUpper === 'FACULTY';
+  const facultyStatus = isFaculty ? getFacultySubmissionStatus(user) : { isSubmitted: false, isLocked: false, hoursLeft: 48 };
 
   const getUserAssignedInst = () => {
     if (isChairman) return null; // Chairman sees all
@@ -29,6 +32,7 @@ const Layout = () => {
 
   // Sidebar tree expansion states
   const [isInstTreeOpen, setIsInstTreeOpen] = useState(true);
+  const [isFacultyTreeOpen, setIsFacultyTreeOpen] = useState(false);
   const [openInstKey, setOpenInstKey] = useState(activeInst);
 
   React.useEffect(() => {
@@ -118,7 +122,9 @@ const Layout = () => {
   const getBreadcrumbTitle = () => {
     if (location.pathname.includes('previous-year-data')) return 'Academic Data Archive';
     if (location.pathname.includes('hod')) return 'HOD Department Portal';
-    if (location.pathname.includes('faculty')) return 'Faculty Submission Portal';
+    if (location.pathname.includes('faculty/dashboard')) return 'Faculty Portal Overview';
+    if (location.pathname.includes('faculty/templates')) return 'Faculty Data Collection Workflow';
+    if (location.pathname.includes('faculty-submissions')) return 'Faculty Submission Portal';
     if (location.pathname.includes('reports')) return 'Reports & Analytics';
     return isChairman ? 'Chairman Overview Portal' : 'Dashboard';
   };
@@ -161,6 +167,8 @@ const Layout = () => {
               <Layers className="w-3.5 h-3.5 mr-1 text-amber-400 flex-shrink-0" />
               {isHod 
                 ? `${user?.department_name || 'Department'} Scope`
+                : isFaculty
+                ? `${user?.department_name || 'Faculty'} Scope`
                 : assignedInst ? `${assignedInst} Scope` : 'Institutional Scope'
               }
             </span>
@@ -179,7 +187,7 @@ const Layout = () => {
           {/* MAIN LINK */}
           <div>
             <Link
-              to={isHod ? '/hod/dashboard' : '/admin/dashboard'}
+              to={isHod ? '/hod/dashboard' : isFaculty ? '/faculty/dashboard' : '/admin/dashboard'}
               className={`flex items-center px-3 py-2 text-xs font-bold rounded-lg transition-all ${
                 location.pathname.includes('dashboard')
                   ? 'bg-brand-blue text-white shadow-sm'
@@ -187,9 +195,100 @@ const Layout = () => {
               }`}
             >
               <LayoutDashboard className="mr-2.5 h-4 w-4 text-white" />
-              {isHod ? 'HOD Department Portal' : (isChairman ? 'Chairman Overview Portal' : 'Dashboard Overview')}
+              {isHod ? 'HOD Department Portal' : isFaculty ? 'Faculty Dashboard' : (isChairman ? 'Chairman Overview Portal' : 'Dashboard Overview')}
             </Link>
           </div>
+
+          {/* DEDICATED EDIT DETAILS SIDEBAR LINK FOR FACULTY LOGINS */}
+          {isFaculty && (
+            <div className="pt-1">
+              {facultyStatus.isLocked ? (
+                <div
+                  title="🔒 Edit Details is disabled because the 48-Hour Edit Window has expired."
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-bold rounded-lg bg-white/5 border border-white/10 text-gray-400 opacity-60 cursor-not-allowed select-none"
+                >
+                  <div className="flex items-center">
+                    <FileCheck className="mr-2.5 h-4 w-4 text-gray-400" />
+                    <span>Edit Details</span>
+                  </div>
+                  <span className="text-[9px] px-1.5 py-0.5 bg-red-900/60 text-red-300 rounded font-bold uppercase tracking-wider">
+                    Disabled (48h Expired)
+                  </span>
+                </div>
+              ) : (
+                <Link
+                  to="/faculty/templates/1"
+                  className={`flex items-center justify-between px-3 py-2 text-xs font-bold rounded-lg transition-all ${
+                    location.pathname.includes('templates')
+                      ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-400'
+                      : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 hover:text-white border border-emerald-500/30'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <FileCheck className="mr-2.5 h-4 w-4 text-emerald-400" />
+                    <span>Edit Details</span>
+                  </div>
+                  <span className="text-[9px] px-1.5 py-0.5 bg-emerald-500/30 text-emerald-300 rounded font-bold uppercase tracking-wider">
+                    {facultyStatus.isSubmitted ? `${Math.floor(facultyStatus.hoursLeft)}h Left` : 'Editable'}
+                  </span>
+                </Link>
+              )}
+            </div>
+          )}
+
+          {/* FACULTY SUBMISSIONS LINK / TREE */}
+          {['ADMIN', 'COLLEGE_DEAN', 'CHAIRMAN', 'IQAC_COORDINATOR', 'DEAN', 'HOD'].includes(roleUpper) && (
+            <div className="space-y-1">
+              {roleUpper === 'CHAIRMAN' ? (
+                <>
+                  <button
+                    onClick={() => setIsFacultyTreeOpen(!isFacultyTreeOpen)}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      location.pathname.includes('faculty-submissions')
+                        ? 'bg-brand-blue/20 text-white'
+                        : 'text-blue-100 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <Users className="mr-2.5 h-4 w-4 text-white" />
+                      Faculty Login Details
+                    </div>
+                    {isFacultyTreeOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                  </button>
+
+                  {isFacultyTreeOpen && (
+                    <div className="pl-9 space-y-1 py-1">
+                      {['E&T', 'FLABS', 'Management', 'B.Arch'].map(inst => (
+                        <button
+                          key={inst}
+                          onClick={() => navigate('/faculty-submissions', { state: { institution: inst } })}
+                          className={`block w-full text-left py-1.5 px-2 text-[11px] rounded transition-all cursor-pointer ${
+                            location.pathname.includes('faculty-submissions') && location.state?.institution === inst
+                              ? 'bg-brand-blue text-white font-bold'
+                              : 'text-blue-200 hover:text-white hover:bg-white/10'
+                          }`}
+                        >
+                          {inst}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <Link
+                  to="/faculty-submissions"
+                  className={`flex items-center px-3 py-2 text-xs font-bold rounded-lg transition-all ${
+                    location.pathname.includes('faculty-submissions')
+                      ? 'bg-brand-blue text-white shadow-sm'
+                      : 'text-blue-100 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  <Users className="mr-2.5 h-4 w-4 text-white" />
+                  Faculty Login Details
+                </Link>
+              )}
+            </div>
+          )}
 
           {/* EXPANDABLE INSTITUTION & DEPARTMENT TREE (ORDERED: E&T, FLABS, Management, B.Arch) */}
           {!isHod && ['ADMIN', 'COLLEGE_DEAN', 'CHAIRMAN', 'IQAC_COORDINATOR', 'DEAN'].includes(roleUpper) && (
@@ -343,10 +442,10 @@ const Layout = () => {
         <div className="p-3 border-t border-white/10 bg-black/10">
           <div className="flex items-center px-2.5 py-1.5 mb-1">
             <div className="h-7 w-7 rounded-full bg-brand-gold flex items-center justify-center text-brand-navy font-bold text-[11px] shadow-sm flex-shrink-0">
-              {getInitials(user?.full_name)}
+              {getInitials(user?.name || user?.full_name)}
             </div>
             <div className="ml-2.5 truncate">
-              <p className="text-xs font-semibold text-white truncate">{user?.full_name || 'User'}</p>
+              <p className="text-xs font-semibold text-white truncate">{user?.name || user?.full_name || 'User'}</p>
               <p className="text-[10px] text-blue-300 truncate">
                 {getRoleDisplay()}
               </p>
@@ -377,13 +476,13 @@ const Layout = () => {
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2.5">
               <div className="text-right hidden sm:block">
-                <p className="text-xs font-bold text-brand-text leading-tight">{user?.full_name || 'User'}</p>
+                <p className="text-xs font-bold text-brand-text leading-tight">{user?.name || user?.full_name || 'User'}</p>
                 <p className="text-[10px] text-brand-muted">
                   {getRoleDisplay()}
                 </p>
               </div>
               <div className="h-7 w-7 rounded-full bg-brand-blue/10 flex items-center justify-center text-brand-navy font-bold text-xs">
-                {getInitials(user?.full_name)}
+                {getInitials(user?.name || user?.full_name)}
               </div>
             </div>
           </div>

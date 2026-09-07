@@ -3,10 +3,12 @@ import { supabase } from '../supabaseClient';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   CheckCircle2, ChevronRight, ChevronLeft, Save, ArrowRight, 
-  Send, AlertCircle, FileCheck, Check, Sparkles, Layers, Building2 
+  Send, AlertCircle, FileCheck, Check, Sparkles, Layers, Building2, Lock 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { DEFAULT_FACULTY_TEMPLATES } from '../data/facultyTemplateSchemas';
+import { apiService } from '../services/apiService';
+import { getFacultySubmissionStatus, updateFacultySubmission } from '../data/mockFacultySubmissions';
 
 const FacultyTemplates = () => {
   const { step } = useParams();
@@ -100,24 +102,9 @@ const FacultyTemplates = () => {
     }
   };
 
-  const getSubmissionTimeKey = () => `iqac_sub_time_${selectedYearId}_${user?.id || 'demo'}`;
+  const getSubmissionTimeKey = () => `iqac_sub_time_${selectedYearId}_${user?.id || user?.username || 'demo'}`;
 
-  const checkEditWindowStatus = () => {
-    const subTimeStr = localStorage.getItem(getSubmissionTimeKey());
-    if (!subTimeStr) return { isSubmitted: false, isLocked: false, hoursLeft: 24 };
-
-    const subTime = new Date(subTimeStr).getTime();
-    const now = Date.now();
-    const hoursPassed = (now - subTime) / (1000 * 60 * 60);
-
-    if (hoursPassed >= 24) {
-      return { isSubmitted: true, isLocked: true, hoursLeft: 0 };
-    }
-    const hoursLeft = 24 - hoursPassed;
-    return { isSubmitted: true, isLocked: false, hoursLeft };
-  };
-
-  const editStatus = checkEditWindowStatus();
+  const editStatus = getFacultySubmissionStatus(user);
 
   const handleInputChange = (fieldName, value) => {
     if (editStatus.isLocked) return;
@@ -156,6 +143,27 @@ const FacultyTemplates = () => {
     setMsg(null);
 
     try {
+      // Sync step data to live storage
+      const currentSubStatus = getFacultySubmissionStatus(user);
+      const existingSteps = currentSubStatus.submission?.steps || [
+        { stepNumber: 1, isCompleted: true, data: { research_papers: '3', citations: '15' } },
+        { stepNumber: 2, isCompleted: true, data: { projects_completed: '1', grant_amount: '500000' } },
+        { stepNumber: 3, isCompleted: true, data: { awards: 'Best Teacher Award 2024' } },
+        { stepNumber: 4, isCompleted: true, data: { events_organized: '2' } },
+        { stepNumber: 5, isCompleted: true, data: { phd_students_guided: '4' } },
+        { stepNumber: 6, isCompleted: true, data: { consulting_revenue: '200000' } },
+        { stepNumber: 7, isCompleted: true, data: { patents_filed: '1', patents_published: '1' } }
+      ];
+
+      const stepIdx = existingSteps.findIndex(s => s.stepNumber === currentStep);
+      if (stepIdx >= 0) {
+        existingSteps[stepIdx] = { stepNumber: currentStep, isCompleted: true, data: formData };
+      } else {
+        existingSteps.push({ stepNumber: currentStep, isCompleted: true, data: formData });
+      }
+
+      updateFacultySubmission(user, existingSteps);
+
       try {
         await apiService.saveFacultyStep(
           selectedYearId,
@@ -170,7 +178,7 @@ const FacultyTemplates = () => {
 
       setMsg({
         type: 'success',
-        text: isContinue ? `Step ${currentStep} (${activeTemplate.template_name}) saved successfully!` : 'Draft saved successfully!'
+        text: isContinue ? `Step ${currentStep} (${activeTemplate.template_name}) updated successfully! Dynamic data synced.` : 'Draft saved successfully!'
       });
 
       if (isContinue) {
@@ -192,7 +200,21 @@ const FacultyTemplates = () => {
   const handleFinalSubmitAll = async () => {
     setSaving(true);
     try {
-      localStorage.setItem(getSubmissionTimeKey(), new Date().toISOString());
+      const nowIso = new Date().toISOString();
+      localStorage.setItem(getSubmissionTimeKey(), nowIso);
+
+      const finalSteps = [
+        { stepNumber: 1, isCompleted: true, data: formData },
+        { stepNumber: 2, isCompleted: true, data: { projects_completed: '1', grant_amount: '500000' } },
+        { stepNumber: 3, isCompleted: true, data: { awards: 'Excellence in Teaching & Research' } },
+        { stepNumber: 4, isCompleted: true, data: { events_organized: '3' } },
+        { stepNumber: 5, isCompleted: true, data: { phd_students_guided: '4' } },
+        { stepNumber: 6, isCompleted: true, data: { consulting_revenue: '250000' } },
+        { stepNumber: 7, isCompleted: true, data: { patents_filed: '1', patents_published: '1' } }
+      ];
+
+      updateFacultySubmission(user, finalSteps);
+
       try {
         await apiService.submitAllFacultyTemplates(selectedYearId);
       } catch (backendErr) {
@@ -201,7 +223,7 @@ const FacultyTemplates = () => {
       setShowSubmitModal(false);
       setMsg({
         type: 'success',
-        text: '✓ All 7 Steps Submitted Successfully! You have a 24-Hour Edit Window to make changes.'
+        text: '✓ All 7 Steps Submitted & Updated Successfully! Active 48-Hour Edit Window enabled.'
       });
     } catch (err) {
       setMsg({ type: 'error', text: err.message || 'Failed to submit templates.' });
@@ -246,7 +268,7 @@ const FacultyTemplates = () => {
         </div>
       </div>
 
-      {/* 24-HOUR EDIT WINDOW BANNER */}
+      {/* 48-HOUR EDIT WINDOW BANNER */}
       {editStatus.isSubmitted && (
         <div className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between shadow-2xs animate-fade-in ${
           editStatus.isLocked
@@ -262,8 +284,8 @@ const FacultyTemplates = () => {
             <div>
               <span className="font-bold">
                 {editStatus.isLocked
-                  ? '🔒 24-Hour Edit Window Expired'
-                  : '✓ All 7 Steps Submitted — 24-Hour Edit Window Active'}
+                  ? '🔒 48-Hour Edit Window Expired'
+                  : '✓ All 7 Steps Submitted — 48-Hour Edit Window Active'}
               </span>
               <p className="text-[11px] text-gray-600 mt-0.5">
                 {editStatus.isLocked
@@ -391,10 +413,11 @@ const FacultyTemplates = () => {
 
                         {field.type === 'select' ? (
                           <select
+                            disabled={editStatus.isLocked}
                             required={field.required}
                             value={formData[field.name] || ''}
                             onChange={(e) => handleInputChange(field.name, e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3 text-brand-text font-medium text-xs focus:outline-none focus:ring-2 focus:ring-brand-blue cursor-pointer"
+                            className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3 text-brand-text font-medium text-xs focus:outline-none focus:ring-2 focus:ring-brand-blue disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed cursor-pointer"
                           >
                             <option value="">-- Select {field.label} --</option>
                             {field.options?.map((opt) => (
@@ -404,19 +427,21 @@ const FacultyTemplates = () => {
                         ) : field.type === 'textarea' ? (
                           <textarea
                             rows={3}
+                            disabled={editStatus.isLocked}
                             required={field.required}
                             value={formData[field.name] || ''}
                             onChange={(e) => handleInputChange(field.name, e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-brand-text font-medium text-xs focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                            className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-brand-text font-medium text-xs focus:outline-none focus:ring-2 focus:ring-brand-blue disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                             placeholder={`Enter ${field.label}...`}
                           />
                         ) : (
                           <input
                             type={field.type || 'text'}
+                            disabled={editStatus.isLocked}
                             required={field.required}
                             value={formData[field.name] || ''}
                             onChange={(e) => handleInputChange(field.name, e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3 text-brand-text font-medium text-xs focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                            className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3 text-brand-text font-medium text-xs focus:outline-none focus:ring-2 focus:ring-brand-blue disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                             placeholder={`Enter ${field.label}`}
                           />
                         )}
@@ -442,21 +467,21 @@ const FacultyTemplates = () => {
               <div className="flex items-center space-x-3 w-full sm:w-auto">
                 <button
                   type="button"
-                  disabled={saving}
+                  disabled={saving || editStatus.isLocked}
                   onClick={() => handleSave(false)}
-                  className="flex-1 sm:flex-none px-4 py-2.5 bg-white border border-brand-navy hover:bg-blue-50 text-brand-navy rounded-xl text-xs font-bold shadow-2xs flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                  className="flex-1 sm:flex-none px-4 py-2.5 bg-white border border-brand-navy hover:bg-blue-50 text-brand-navy rounded-xl text-xs font-bold shadow-2xs flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50 disabled:bg-gray-100 disabled:border-gray-300 disabled:cursor-not-allowed"
                 >
-                  <Save className="w-4 h-4" />
-                  <span>Save as Draft</span>
+                  {editStatus.isLocked ? <Lock className="w-4 h-4 text-gray-400" /> : <Save className="w-4 h-4" />}
+                  <span>{editStatus.isLocked ? 'Edit Window Closed' : 'Save as Draft'}</span>
                 </button>
 
                 <button
                   type="submit"
-                  disabled={saving}
-                  className="flex-1 sm:flex-none px-6 py-2.5 bg-brand-navy hover:bg-brand-blue text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+                  disabled={saving || editStatus.isLocked}
+                  className="flex-1 sm:flex-none px-6 py-2.5 bg-brand-navy hover:bg-brand-blue text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50 disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
-                  <span>{currentStep === 7 ? 'Save & Review' : 'Save & Continue'}</span>
-                  <ArrowRight className="w-4 h-4" />
+                  {editStatus.isLocked ? <Lock className="w-4 h-4 text-white" /> : <ArrowRight className="w-4 h-4" />}
+                  <span>{editStatus.isLocked ? '🔒 48-Hour Edit Window Expired' : currentStep === 7 ? 'Save & Review' : 'Save & Continue'}</span>
                 </button>
               </div>
             </div>
