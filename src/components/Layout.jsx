@@ -199,9 +199,9 @@ const Layout = () => {
             </Link>
           </div>
 
-          {/* DEDICATED EDIT DETAILS SIDEBAR LINK FOR FACULTY LOGINS */}
+          {/* DEDICATED EDIT DETAILS SIDEBAR LINK & 7 CATEGORY HEADINGS FOR FACULTY LOGINS */}
           {isFaculty && (
-            <div className="pt-1">
+            <div className="pt-1 space-y-1">
               {facultyStatus.isLocked ? (
                 <div
                   title="🔒 Edit Details is disabled because the 48-Hour Edit Window has expired."
@@ -233,6 +233,31 @@ const Layout = () => {
                   </span>
                 </Link>
               )}
+
+              {/* 7 CATEGORIES DIRECT SIDEBAR LINKS FOR FACULTY */}
+              <div className="pl-3 py-1 space-y-1 border-l border-emerald-500/20 ml-2">
+                {[
+                  { step: 1, name: '1. Events' },
+                  { step: 2, name: '2. Research Papers' },
+                  { step: 3, name: '3. Funded Projects' },
+                  { step: 4, name: '4. Awards & Achievements' },
+                  { step: 5, name: '5. Ph.D. Guidance' },
+                  { step: 6, name: '6. Consultancy & Revenue' },
+                  { step: 7, name: '7. Patents & Publications' }
+                ].map((cat) => (
+                  <Link
+                    key={cat.step}
+                    to={`/faculty/templates/${cat.step}`}
+                    className={`block w-full text-left py-1 px-2.5 text-[11px] rounded transition-all truncate ${
+                      location.pathname.includes(`/templates/${cat.step}`)
+                        ? 'bg-emerald-600 text-white font-bold shadow-2xs'
+                        : 'text-blue-200 hover:text-white hover:bg-white/10 font-medium'
+                    }`}
+                  >
+                    {cat.name}
+                  </Link>
+                ))}
+              </div>
             </div>
           )}
 

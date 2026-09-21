@@ -10,38 +10,11 @@ const FacultyDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [years, setYears] = useState([]);
-  const [selectedYear, setSelectedYear] = useState('5'); // Default 2025-26
-  const [progress, setProgress] = useState(null);
-  const [loading, setLoading] = useState(true);
-
+  const [customAcademicYear, setCustomAcademicYear] = useState('2025-26');
   const facultyStatus = getFacultySubmissionStatus(user);
 
-  useEffect(() => {
-    loadFacultyProgress();
-  }, [selectedYear]);
-
-  const loadFacultyProgress = async () => {
-    setLoading(true);
-    try {
-      const [yearsData, progressData] = await Promise.all([
-        apiService.getAcademicYears(),
-        apiService.getFacultyProgress(Number(selectedYear))
-      ]);
-      setYears(yearsData);
-      setProgress(progressData);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const completedStepsCount = progress?.steps?.filter(s => s.is_completed).length || 0;
-  const totalStepsCount = progress?.steps?.length || 7;
-  const overallPercentage = Math.round((completedStepsCount / totalStepsCount) * 100);
-
   return (
-    <div className="space-y-4 sm:space-y-5 animate-fade-in font-sans">
+    <div className="space-y-5 animate-fade-in font-sans">
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-brand-navy to-brand-blue rounded-xl p-5 shadow-2xs text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
         <div>
@@ -51,23 +24,21 @@ const FacultyDashboard = () => {
           </div>
           <h2 className="text-xl font-bold">Welcome, {user?.full_name || user?.name || 'Faculty Member'}</h2>
           <p className="text-blue-100 text-xs mt-0.5">
-            Faculty ID: <span className="font-mono text-white bg-white/20 px-2 py-0.5 rounded">{user?.username || 'FACULTY'}</span> | Institution: <span className="font-bold text-white">{user?.department_name || user?.group || 'FLABS'}</span>
+            Faculty ID: <span className="font-mono text-white bg-white/20 px-2 py-0.5 rounded">{user?.username || 'FACULTY'}</span> | Institution: <span className="font-bold text-white">{user?.department_name || user?.group || 'Computer Science'}</span>
           </p>
         </div>
 
-        {/* Academic Year Selector */}
+        {/* Typed Academic Year Input */}
         <div className="bg-white/10 backdrop-blur-md p-2.5 rounded-xl border border-white/20 flex items-center space-x-2">
           <Calendar className="w-4 h-4 text-brand-gold" />
           <span className="text-xs font-bold text-white">Academic Year:</span>
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-            className="bg-brand-navy text-white text-xs font-bold py-1 px-2.5 rounded-lg border border-white/30 focus:outline-none cursor-pointer"
-          >
-            {years.map((y) => (
-              <option key={y.id} value={y.id}>{y.year_name}</option>
-            ))}
-          </select>
+          <input
+            type="text"
+            value={customAcademicYear}
+            onChange={(e) => setCustomAcademicYear(e.target.value)}
+            placeholder="e.g. 2025-26"
+            className="w-24 bg-brand-navy text-white text-xs font-bold py-1 px-2.5 rounded-lg border border-white/30 focus:outline-none focus:ring-1 focus:ring-brand-gold font-mono text-center"
+          />
         </div>
       </div>
 
@@ -95,7 +66,7 @@ const FacultyDashboard = () => {
                 {facultyStatus.isLocked
                   ? '🔒 Edit Window Expired (Locked)'
                   : facultyStatus.isSubmitted
-                  ? '✓ Submission Active — Edit Window Enabled'
+                  ? '✓ Data Submission Active'
                   : '📝 Data Submission Open'}
               </span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
@@ -107,9 +78,7 @@ const FacultyDashboard = () => {
             <p className="text-[11px] text-gray-600 mt-0.5">
               {facultyStatus.isLocked
                 ? 'Your 48-hour edit window has expired. Submissions are now locked for institutional reporting.'
-                : facultyStatus.isSubmitted
-                ? `You have ${Math.floor(facultyStatus.hoursLeft)}h ${Math.floor((facultyStatus.hoursLeft % 1) * 60)}m remaining to click "Edit Details" and modify your submission.`
-                : 'Complete all 7 template steps to finalize your IQAC submission.'}
+                : 'Select any category from the sidebar or click Start Data Submission to submit details for Academic Year ' + customAcademicYear + '.'}
             </p>
           </div>
         </div>
@@ -117,106 +86,16 @@ const FacultyDashboard = () => {
         <button
           disabled={facultyStatus.isLocked}
           onClick={() => navigate('/faculty/templates/1')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center space-x-2 flex-shrink-0 ${
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition-all flex items-center space-x-2 flex-shrink-0 cursor-pointer ${
             facultyStatus.isLocked
               ? 'bg-gray-200 text-gray-400 border border-gray-300 cursor-not-allowed'
-              : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
+              : 'bg-brand-navy hover:bg-brand-blue text-white'
           }`}
         >
-          {facultyStatus.isLocked ? <Lock className="w-4 h-4" /> : <FileCheck className="w-4 h-4" />}
-          <span>{facultyStatus.isLocked ? 'Edit Window Closed' : 'Edit Details'}</span>
-        </button>
-      </div>
-
-      {/* OVERALL SUBMISSION PROGRESS CARD */}
-      <div className="bg-white rounded-xl shadow-2xs border border-gray-200/80 p-5 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex-1 w-full">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-bold text-brand-navy">Overall IQAC Submission Progress</span>
-            <span className="text-xs font-bold text-brand-blue">{completedStepsCount} of {totalStepsCount} Steps Completed ({overallPercentage}%)</span>
-          </div>
-          <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden flex">
-            <div 
-              className="bg-emerald-500 h-3 rounded-full transition-all duration-500" 
-              style={{ width: `${overallPercentage}%` }}
-            ></div>
-          </div>
-        </div>
-
-        <button
-          disabled={facultyStatus.isLocked}
-          onClick={() => navigate('/faculty/templates/1')}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition-all flex items-center space-x-2 flex-shrink-0 ${
-            facultyStatus.isLocked
-              ? 'bg-gray-200 text-gray-400 border border-gray-300 cursor-not-allowed'
-              : 'bg-brand-navy hover:bg-brand-blue text-white cursor-pointer'
-          }`}
-        >
-          {facultyStatus.isLocked ? <Lock className="w-4 h-4" /> : <FileCheck className="w-4 h-4 text-brand-gold" />}
-          <span>{facultyStatus.isLocked ? 'Submission Locked' : completedStepsCount === 0 ? 'Start Data Submission' : 'Continue Workflow / Edit'}</span>
+          <FileCheck className="w-4 h-4 text-brand-gold" />
+          <span>{facultyStatus.isLocked ? 'Submission Locked' : 'Start Data Submission'}</span>
           {!facultyStatus.isLocked && <ArrowRight className="w-4 h-4" />}
         </button>
-      </div>
-
-      {/* SEVEN TEMPLATE STEPS GRID */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-bold text-brand-navy uppercase tracking-wider flex items-center">
-          <FileCheck className="w-4 h-4 mr-1.5 text-brand-blue" />
-          Seven IQAC Data Templates
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-          {progress?.steps?.map((step) => (
-            <div 
-              key={step.step_number}
-              className={`bg-white rounded-xl p-4 border transition-all duration-150 flex flex-col justify-between ${
-                step.is_completed 
-                  ? 'border-emerald-200 shadow-2xs hover:border-emerald-400' 
-                  : 'border-gray-200/80 hover:border-brand-blue/40 shadow-2xs'
-              }`}
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="px-2 py-0.5 bg-brand-navy text-white text-[9px] font-bold rounded uppercase tracking-wider">
-                    Step {step.step_number}
-                  </span>
-
-                  {step.is_completed ? (
-                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold flex items-center">
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" /> Completed
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[10px] font-bold flex items-center">
-                      <Clock className="w-3.5 h-3.5 mr-1 text-amber-600" /> Pending
-                    </span>
-                  )}
-                </div>
-
-                <h4 className="text-sm font-bold text-brand-navy mb-1">{step.template_name}</h4>
-                <p className="text-[11px] text-brand-muted line-clamp-2">Excel Sheet: <span className="font-semibold text-brand-text">{step.sheet_name}</span></p>
-              </div>
-
-              <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-                <span className="text-[10px] text-brand-muted">
-                  {step.updated_at ? `Saved ${new Date(step.updated_at).toLocaleDateString()}` : 'Not saved yet'}
-                </span>
-                <button
-                  disabled={facultyStatus.isLocked}
-                  onClick={() => navigate(`/faculty/templates/${step.step_number}`)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    facultyStatus.isLocked
-                      ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
-                      : step.is_completed 
-                      ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 cursor-pointer' 
-                      : 'bg-brand-navy hover:bg-brand-blue text-white shadow-xs cursor-pointer'
-                  }`}
-                >
-                  {facultyStatus.isLocked ? 'Locked' : step.is_completed ? 'Edit Step' : 'Fill Data'}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

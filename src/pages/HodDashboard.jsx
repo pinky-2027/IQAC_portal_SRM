@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Building2, Calendar, FileText, CheckCircle2, Clock, Eye, AlertCircle, ShieldAlert, X, ExternalLink, FileCheck, TrendingUp, BarChart2, FileX, Award, GraduationCap, Users, Microscope } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -175,6 +176,14 @@ const HodDashboard = () => {
             Single-Department Scoped Performance Dashboard for {hodScope.deptCode} Department
           </p>
         </div>
+
+        <Link
+          to="/faculty-submissions"
+          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-brand-navy font-bold rounded-xl text-xs flex items-center space-x-2 shadow-md transition-all cursor-pointer whitespace-nowrap"
+        >
+          <FileCheck className="w-4 h-4" />
+          <span>Review Faculty Submissions</span>
+        </Link>
       </div>
 
       {/* ACADEMIC YEAR FILTER BAR (LOCKED TO HOD'S DEPARTMENT ONLY) */}
