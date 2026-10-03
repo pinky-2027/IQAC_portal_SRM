@@ -5,7 +5,7 @@ import { Building2, Calendar, FileText, CheckCircle2, Clock, Eye, AlertCircle, S
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/apiService';
-import { getLegacyKpiClientData, formatVal, isPercentageIndicator, normalizePercentageValue } from '../services/dataService';
+import { getLegacyKpiClientData, formatVal, isPercentageIndicator, normalizePercentageValue, getKpiTargetAnalysis } from '../services/dataService';
 
 const HodDashboard = () => {
   const { user } = useAuth();
@@ -15,7 +15,7 @@ const HodDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedTrendIndicator, setSelectedTrendIndicator] = useState('Student Pass Percentage');
 
-  const availableYears = ['2021-2022', '2022-2023', '2023-2024', '2024-2025', '2025-2026'];
+  const availableYears = ['2021-2022', '2022-2023', '2023-2024', '2024-2025', '2025-2026', '2026-2027'];
 
   // Map HOD assigned department and institution from user profile
   const getHodAssignedDetails = () => {
@@ -141,23 +141,35 @@ const HodDashboard = () => {
 
     const isPct = isPercentageIndicator(rec.indicator);
 
-    return availableYears.map(yr => {
+    const rawData = availableYears.map(yr => {
       const val = rec.values ? rec.values[yr] : rec[yr];
       let numVal = 0;
+      let hasData = true;
+
+      if (val === undefined || val === null || val === 'NIL' || val === '' || val === 0) {
+        hasData = false;
+      }
+
       if (isPct) {
         const norm = normalizePercentageValue(val);
         numVal = norm !== null ? norm : 0;
+        if (norm === null) hasData = false;
       } else if (typeof val === 'number') {
         numVal = val;
       } else if (typeof val === 'string') {
         const parsed = parseFloat(val);
         numVal = isNaN(parsed) ? 0 : parsed;
       }
+
       return {
         year: yr,
-        value: numVal
+        value: numVal,
+        hasData
       };
     });
+
+    // Exclude unsubmitted future years (e.g. 2026-2027) if they have no valid data submitted yet
+    return rawData.filter(item => item.hasData || (item.year !== '2026-2027' && item.value > 0));
   };
 
   return (
@@ -177,13 +189,23 @@ const HodDashboard = () => {
           </p>
         </div>
 
-        <Link
-          to="/faculty-submissions"
-          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-brand-navy font-bold rounded-xl text-xs flex items-center space-x-2 shadow-md transition-all cursor-pointer whitespace-nowrap"
-        >
-          <FileCheck className="w-4 h-4" />
-          <span>Review Faculty Submissions</span>
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            to="/hod/performance-kpis"
+            className="px-4 py-2.5 bg-amber-400 hover:bg-amber-500 text-brand-navy font-extrabold rounded-xl text-xs flex items-center space-x-2 shadow-md transition-all cursor-pointer whitespace-nowrap"
+          >
+            <BarChart2 className="w-4 h-4" />
+            <span>Fill Performance KPIs</span>
+          </Link>
+
+          <Link
+            to="/faculty-submissions"
+            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-xs flex items-center space-x-2 shadow-md transition-all cursor-pointer whitespace-nowrap border border-white/20"
+          >
+            <FileCheck className="w-4 h-4" />
+            <span>Review Faculty Submissions</span>
+          </Link>
+        </div>
       </div>
 
       {/* ACADEMIC YEAR FILTER BAR (LOCKED TO HOD'S DEPARTMENT ONLY) */}
@@ -240,17 +262,36 @@ const HodDashboard = () => {
               const formattedVal = formatVal(indicator, rawVal);
               const topAccent = getTopBorderAccent(idx);
 
+              const targetAnalysis = getKpiTargetAnalysis(indicator, rawVal, {
+                sanctioned: rec.values ? rec.values[selectedYear] : 100
+              });
+
               return (
                 <div 
                   key={idx} 
                   className={`bg-white rounded-2xl p-4 sm:p-5 shadow-2xs border border-gray-200/90 hover:shadow-md transition-all flex flex-col justify-between ${topAccent}`}
                 >
                   <div>
-                    <h4 className="text-xs sm:text-sm font-bold text-gray-700 mb-2 font-sans">
-                      {indicator}
-                    </h4>
-                    <div className="text-2xl sm:text-3xl font-extrabold font-sans text-brand-navy tracking-tight mb-3">
-                      {formattedVal}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h4 className="text-xs sm:text-sm font-bold text-gray-800 font-sans leading-tight">
+                        {indicator}
+                      </h4>
+                      {targetAnalysis.status !== 'neutral' && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full border ${targetAnalysis.badgeClass} flex-shrink-0 flex items-center shadow-2xs font-extrabold`}>
+                          {targetAnalysis.text}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-baseline justify-between mb-2">
+                      <div className="text-2xl sm:text-3xl font-extrabold font-sans text-brand-navy tracking-tight">
+                        {formattedVal}
+                      </div>
+                      {targetAnalysis.target && (
+                        <span className="text-[10px] text-gray-600 font-bold bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                          Target: {targetAnalysis.target}
+                        </span>
+                      )}
                     </div>
                   </div>
 

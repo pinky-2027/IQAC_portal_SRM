@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/apiService';
-import { getLegacyKpiClientData, getInstitutionalOverviewData, formatVal, isPercentageIndicator, normalizePercentageValue } from '../services/dataService';
+import { getLegacyKpiClientData, getInstitutionalOverviewData, formatVal, isPercentageIndicator, normalizePercentageValue, getKpiTargetAnalysis } from '../services/dataService';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -46,7 +46,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
   const [selectedTrendIndicator, setSelectedTrendIndicator] = useState('Student Pass Percentage');
 
-  const availableYears = ['2021-2022', '2022-2023', '2023-2024', '2024-2025', '2025-2026'];
+  const availableYears = ['2021-2022', '2022-2023', '2023-2024', '2024-2025', '2025-2026', '2026-2027'];
 
   // Synchronize sidebar navigation click with right-hand dashboard view
   useEffect(() => {
@@ -191,23 +191,35 @@ const Dashboard = () => {
 
     const isPct = isPercentageIndicator(rec.indicator);
 
-    return availableYears.map(yr => {
+    const rawData = availableYears.map(yr => {
       const val = rec.values ? rec.values[yr] : rec[yr];
       let numVal = 0;
+      let hasData = true;
+
+      if (val === undefined || val === null || val === 'NIL' || val === '' || val === 0) {
+        hasData = false;
+      }
+
       if (isPct) {
         const norm = normalizePercentageValue(val);
         numVal = norm !== null ? norm : 0;
+        if (norm === null) hasData = false;
       } else if (typeof val === 'number') {
         numVal = val;
       } else if (typeof val === 'string') {
         const parsed = parseFloat(val);
         numVal = isNaN(parsed) ? 0 : parsed;
       }
+
       return {
         year: yr,
-        value: numVal
+        value: numVal,
+        hasData
       };
     });
+
+    // Exclude unsubmitted future years (e.g. 2026-2027) if they have no valid data submitted yet
+    return rawData.filter(item => item.hasData || (item.year !== '2026-2027' && item.value > 0));
   };
 
   const prepareDeptComparisonBarChartData = (record) => {
@@ -467,6 +479,11 @@ const Dashboard = () => {
                   const topAccent = getTopBorderAccent(idx);
                   const isPct = isPercentageIndicator(indicator);
 
+                  // Evaluate target benchmark status
+                  const targetAnalysis = getKpiTargetAnalysis(indicator, rawVal, {
+                    sanctioned: rec.values ? rec.values[selectedYear] : 100
+                  });
+
                   const labelText = viewLevel === 'dept_single'
                     ? `${selectedDept} ${isPct ? 'Value' : 'Total'}`
                     : `Institutional ${isPct ? 'Average (Mean)' : 'Total Sum'}`;
@@ -477,11 +494,26 @@ const Dashboard = () => {
                       className={`bg-white rounded-2xl p-4 sm:p-5 shadow-2xs border border-gray-200/90 hover:shadow-md transition-all flex flex-col justify-between ${topAccent}`}
                     >
                       <div>
-                        <h4 className="text-xs sm:text-sm font-bold text-gray-700 mb-2 font-sans">
-                          {indicator}
-                        </h4>
-                        <div className="text-2xl sm:text-3xl font-extrabold font-sans text-brand-navy tracking-tight mb-3">
-                          {formattedVal}
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <h4 className="text-xs sm:text-sm font-bold text-gray-800 font-sans leading-tight">
+                            {indicator}
+                          </h4>
+                          {targetAnalysis.status !== 'neutral' && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${targetAnalysis.badgeClass} flex-shrink-0 flex items-center shadow-2xs font-extrabold`}>
+                              {targetAnalysis.text}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-baseline justify-between mb-2">
+                          <div className="text-2xl sm:text-3xl font-extrabold font-sans text-brand-navy tracking-tight">
+                            {formattedVal}
+                          </div>
+                          {targetAnalysis.target && (
+                            <span className="text-[10px] text-gray-600 font-bold bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                              Target: {targetAnalysis.target}
+                            </span>
+                          )}
                         </div>
                       </div>
 

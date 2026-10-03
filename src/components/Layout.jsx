@@ -121,6 +121,7 @@ const Layout = () => {
 
   const getBreadcrumbTitle = () => {
     if (location.pathname.includes('previous-year-data')) return 'Academic Data Archive';
+    if (location.pathname.includes('hod/performance-kpis')) return 'HOD Performance KPIs Entry';
     if (location.pathname.includes('hod')) return 'HOD Department Portal';
     if (location.pathname.includes('faculty/dashboard')) return 'Faculty Portal Overview';
     if (location.pathname.includes('faculty/templates')) return 'Faculty Data Collection Workflow';
@@ -185,7 +186,7 @@ const Layout = () => {
           </div>
 
           {/* MAIN LINK */}
-          <div>
+          <div className="space-y-1">
             <Link
               to={isHod ? '/hod/dashboard' : isFaculty ? '/faculty/dashboard' : '/admin/dashboard'}
               className={`flex items-center px-3 py-2 text-xs font-bold rounded-lg transition-all ${
@@ -197,6 +198,26 @@ const Layout = () => {
               <LayoutDashboard className="mr-2.5 h-4 w-4 text-white" />
               {isHod ? 'HOD Department Portal' : isFaculty ? 'Faculty Dashboard' : (isChairman ? 'Chairman Overview Portal' : 'Dashboard Overview')}
             </Link>
+
+            {/* DEDICATED NEW TAB FOR HOD LOGINS: PERFORMANCE KPIS */}
+            {isHod && (
+              <Link
+                to="/hod/performance-kpis"
+                className={`flex items-center justify-between px-3 py-2 text-xs font-bold rounded-lg transition-all ${
+                  location.pathname.includes('performance-kpis')
+                    ? 'bg-amber-400 text-brand-navy shadow-sm ring-1 ring-amber-300 font-extrabold'
+                    : 'bg-amber-400/10 text-amber-300 hover:bg-amber-400/20 hover:text-white border border-amber-400/20'
+                }`}
+              >
+                <div className="flex items-center">
+                  <BarChart2 className="mr-2.5 h-4 w-4 text-amber-400" />
+                  <span>Performance KPIs</span>
+                </div>
+                <span className="text-[9px] px-1.5 py-0.5 bg-amber-400/30 text-amber-300 font-extrabold rounded uppercase tracking-wider">
+                  HOD Entry
+                </span>
+              </Link>
+            )}
           </div>
 
           {/* DEDICATED EDIT DETAILS SIDEBAR LINK & 7 CATEGORY HEADINGS FOR FACULTY LOGINS */}

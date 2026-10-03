@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import PreviousYearData from './pages/PreviousYearData';
 import HodDashboard from './pages/HodDashboard';
+import HodPerformanceKpis from './pages/HodPerformanceKpis';
 import FacultyDashboard from './pages/FacultyDashboard';
 import FacultyTemplates from './pages/FacultyTemplates';
 import Reports from './pages/Reports';
@@ -32,6 +33,7 @@ function App() {
             {/* HOD ROUTES */}
             <Route element={<ProtectedRoute allowedRoles={['HOD', 'ADMIN', 'COLLEGE_DEAN', 'CHAIRMAN']} />}>
               <Route path="hod/dashboard" element={<HodDashboard />} />
+              <Route path="hod/performance-kpis" element={<HodPerformanceKpis />} />
             </Route>
 
             {/* FACULTY ROUTES */}
